@@ -114,13 +114,10 @@ void RTC_DS3232::writeSqwPinMode(Ds3232SqwPinMode mode) {
 float RTC_DS3232::getTemperature() {
   uint8_t buffer[2] = {DS3232_TEMPERATUREREG, 0};
   i2c_dev->write_then_read(buffer, 1, buffer, 2);
-  // 2024-10-03 BW Corrected maths. The first byte is 2's complement
-  // but because it's unsigned, a simple cast to float will turn -1 into 255! 
-  // So need to make it signed first. Also whether the fractional part should
-  // be added or subtracted depends on the whole part's sign.
-  int8_t whole = (int8_t)buffer[0];
-  float fraction = (buffer[1] >> 6) * 0.25f;
-  return (whole < 0) ? (float)whole - fraction : (float)whole + fraction;
+  // First we convert the full 10 bits into a signed integer, then multiply by 0.25 to get
+  // a signed float of the number of degrees.
+  int16_t signedVal = ((int8_t)buffer[0] << 2) + (buffer[1] >> 6);
+  return signedVal * 0.25;
 }
 
 /**************************************************************************/

@@ -458,7 +458,7 @@ public:
 /**************************************************************************/
 class RTC_DS3232 : RTC_I2C {
 public:
-  boolean begin(TwoWire *wireInstance = &Wire);
+  bool begin(TwoWire *wireInstance = &Wire);
   void adjust(const DateTime &dt);
   bool lostPower(void);
   DateTime now();
