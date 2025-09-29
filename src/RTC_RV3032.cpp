@@ -66,7 +66,7 @@ void RTC_RV3032::clearLostPower(void) {
         @return True if the bit is set or false if not
 */
 /**************************************************************************/
-bool backupSwitchoverFlag()
+bool RTC_RV3032::backupSwitchoverFlag()
 {
   // BSF is in the first byte of the temperature register
   uint8_t reg = read_register(RV3032_TEMPERATURE);
@@ -79,7 +79,7 @@ bool backupSwitchoverFlag()
         @return True if the bit is set or false if not
 */
 /**************************************************************************/
-bool eepromBusyFlag()
+bool RTC_RV3032::eepromBusyFlag()
 {
   // EEBUSY is in the first byte of the temperature register
   uint8_t reg = read_register(RV3032_TEMPERATURE);
