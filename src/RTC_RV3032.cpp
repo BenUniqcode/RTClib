@@ -145,11 +145,11 @@ float RTC_RV3032::getTemperature() {
 /*!
         @brief  Set alarm for RV3032
                 @param 	dt DateTime object
-                @param 	alarm_mode Desired mode, see RV3032AlarmMode enum
+                @param 	alarm_mode Desired mode, see Rv3032AlarmMode enum
         @return False if control register is not set, otherwise true
 */
 /**************************************************************************/
-bool RTC_RV3032::setAlarm(const DateTime &dt, RV3032AlarmMode alarm_mode) {
+bool RTC_RV3032::setAlarm(const DateTime &dt, Rv3032AlarmMode alarm_mode) {
   // Somewhat bizarrely, the Alarm Enable bits need to be set to 0 to enable, 1 to disable
   bool AE_M = !(alarm_mode & RV3032_AlarmModeBit_Minute);
   bool AE_H = !(alarm_mode & RV3032_AlarmModeBit_Hour);
