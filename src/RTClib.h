@@ -129,7 +129,7 @@ enum Rv3032AlarmModeBits {
 
 /** RV3032 Alarm Mode values. These correspond to the table on p84 of the Application Manual,
  * but with bits inverted compared to what the underlying AE_* bits are set to */
-enum Rv3032 AlarmMode {
+enum Rv3032AlarmMode {
   RV3032_AlarmMode_Monthly_ExactDateAndTime = RV3032_AlarmModeBit_Minute + RV3032_AlarmModeBit_Hour + RV3032_AlarmModeBit_Date,
   RV3032_AlarmMode_Monthly_HourOnly = RV3032_AlarmModeBit_Hour + RV3032_AlarmModeBit_Date,
   RV3032_AlarmMode_Monthly_MinutesOnly = RV3032_AlarmModeBit_Minute + RV3032_AlarmModeBit_Date,
