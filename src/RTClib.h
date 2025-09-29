@@ -536,7 +536,6 @@ public:
   bool alarmFired();
   void clearAlarm();
   float getTemperature(); // in Celsius degree
-  void getConfig(Rv3032ConfigReg reg
 };
 
 /**************************************************************************/
