@@ -120,6 +120,27 @@ enum Ds3232Alarm2Mode {
                                                            and minutes match */
 };
 
+/** RV3032 Bit values for alarm modes - set all that apply */
+enum Rv3032AlarmModeBits {
+  RV3032_AlarmModeBit_Minute = 0x01, /**< Alarm when minutes match */
+  RV3032_AlarmModeBit_Hour = 0x02,   /**< Alarm when hours and minutes match */
+  RV3032_AlarmModeBit_Date = 0x04,   /**< Alarm when date (day of month), hours and minutes match */
+};
+
+/** RV3032 Alarm Mode values. These correspond to the table on p84 of the Application Manual,
+ * but with bits inverted compared to what the underlying AE_* bits are set to */
+enum Rv3032 AlarmMode {
+  RV3032_AlarmMode_Monthly_ExactDateAndTime = RV3032_AlarmModeBit_Minute + RV3032_AlarmModeBit_Hour + RV3032_AlarmModeBit_Date,
+  RV3032_AlarmMode_Monthly_HourOnly = RV3032_AlarmModeBit_Hour + RV3032_AlarmModeBit_Date,
+  RV3032_AlarmMode_Monthly_MinutesOnly = RV3032_AlarmModeBit_Minute + RV3032_AlarmModeBit_Date,
+  RV3032_AlarmMode_Monthly_DateOnly = RV3032_AlarmModeBit_Date,
+  RV3032_AlarmMode_Daily_ExactTime = RV3032_AlarmModeBit_Hour + RV3032_AlarmModeBit_Minute,
+  RV3032_AlarmMode_Daily_HoursOnly = RV3032_AlarmModeBit_Hour,
+  RV3032_AlarmMode_Hourly_MinutesOnly = RV3032_AlarmModeBit_Minute,
+  RV3032_AlarmMode_Every_Minute = 0,
+};
+
+
 /** PCF8523 INT/SQW pin mode settings */
 enum Pcf8523SqwPinMode {
   PCF8523_OFF = 7,             /**< Off */
@@ -493,6 +514,31 @@ public:
   void writenvram(uint8_t address, uint8_t data);
   void writenvram(uint8_t address, const uint8_t *buf, uint8_t size);
 };
+
+/**************************************************************************/
+/*!
+        @brief  RTC based on the RV-3032 chip connected via I2C and the Wire library
+*/
+/**************************************************************************/
+// Implemented by Ben Wheeler <ben@uniqcode.com>
+// Note this RTC provides many more features; I have only implemented the core functionality
+class RTC_RV3032 : RTC_I2C {
+public:
+  bool begin(TwoWire *wireInstance = &Wire);
+  void adjust(const DateTime &dt);
+  bool lostPower();
+  void clearLostPower();
+  bool backupSwitchoverFlag(); // Cleared on read
+  bool eepromBusyFlag(); // Cleared on read
+  DateTime now();
+  bool setAlarm(const DateTime &dt, Rv3032AlarmMode alarm_mode);
+  void disableAlarm();
+  bool alarmFired();
+  void clearAlarm();
+  float getTemperature(); // in Celsius degree
+  void getConfig(Rv3032ConfigReg reg
+};
+
 /**************************************************************************/
 /*!
         @brief  RTC based on the PCF8523 chip connected via I2C and the Wire
