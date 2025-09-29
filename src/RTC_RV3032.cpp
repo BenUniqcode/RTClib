@@ -158,7 +158,7 @@ bool RTC_RV3032::setAlarm(const DateTime &dt, Rv3032AlarmMode alarm_mode) {
   uint8_t buffer[4] = {RV3032_ALARM, 
                        uint8_t(bin2bcd(dt.minute()) | AE_M),
                        uint8_t(bin2bcd(dt.hour()) | AE_H),
-                       uint8_t(bin2bcd(dt.date()) | AE_D)};
+                       uint8_t(bin2bcd(dt.day()) | AE_D)};
   i2c_dev->write(buffer, 4);
 
   // Enable Alarm Interrupt output pin, if not already enabled
