@@ -52,7 +52,7 @@ bool RTC_RV3032::lostPower(void) {
 */
 /**************************************************************************/
 void RTC_RV3032::clearLostPower(void) {
-  uint8_t porfMask = 1 << RV3032_STATUSBIT_PORF;
+  uint8_t porfMask = 1 << RV3032_STATUS_BIT_PORF;
   uint8_t statreg = read_register(RV3032_STATUS);
   if (statreg & porfMask) {
     statreg &= ~porfMask; // clear PORF bit
@@ -69,9 +69,8 @@ void RTC_RV3032::clearLostPower(void) {
 bool backupSwitchoverFlag()
 {
   // BSF is in the first byte of the temperature register
-  uint8_t buffer[1] = RV3032_TEMPERATURE;
-  i2c_dev->write_then_read(buffer, 1, buffer, 1);
-  return buffer[0] & RV3032_TEMPERATURE_BIT_BSF;
+  uint8_t reg = read_register(RV3032_TEMPERATURE);
+  return reg & (1 << RV3032_TEMPERATURE_BIT_BSF);
 } 
 
 /**************************************************************************/
@@ -83,9 +82,8 @@ bool backupSwitchoverFlag()
 bool eepromBusyFlag()
 {
   // EEBUSY is in the first byte of the temperature register
-  uint8_t buffer[1] = RV3032_TEMPERATURE;
-  i2c_dev->write_then_read(buffer, 1, buffer, 1);
-  return buffer[0] & RV3032_TEMPERATURE_BIT_EEBUSY;
+  uint8_t reg = read_register(RV3032_TEMPERATURE);
+  return reg & (1 << RV3032_TEMPERATURE_BIT_EEBUSY);
 }
 
 /**************************************************************************/
