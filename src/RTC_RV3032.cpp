@@ -177,7 +177,7 @@ bool RTC_RV3032::setAlarm(const DateTime &dt, RV3032AlarmMode alarm_mode) {
         @brief  Disable alarm
 */
 /**************************************************************************/
-void RTC_RV3032::disableAlarm(uint8_t alarm_num) {
+void RTC_RV3032::disableAlarm() {
   // Disable Alarm Interrupt output pin, if enabled
   uint8_t aieMask = 1 << RV3032_CONTROL2_BIT_AIE;
   uint8_t ctrl2 = read_register(RV3032_CONTROL2);
@@ -197,7 +197,7 @@ void RTC_RV3032::disableAlarm(uint8_t alarm_num) {
                 @param 	alarm_num Alarm number to clear
 */
 /**************************************************************************/
-void RTC_RV3032::clearAlarm(uint8_t alarm_num) {
+void RTC_RV3032::clearAlarm() {
   uint8_t status = read_register(RV3032_STATUS);
   status &= ~(1 << RV3032_STATUS_BIT_AF);
   write_register(RV3032_STATUS, status);
