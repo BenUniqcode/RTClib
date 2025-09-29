@@ -164,7 +164,7 @@ bool RTC_RV3032::setAlarm(const DateTime &dt, Rv3032AlarmMode alarm_mode) {
   // Enable Alarm Interrupt output pin, if not already enabled
   uint8_t aieMask = 1 << RV3032_CONTROL2_BIT_AIE;
   uint8_t ctrl2 = read_register(RV3032_CONTROL2);
-  if (ctrl2 & aieMask == 0) {
+  if ((ctrl2 & aieMask) == 0) {
     ctrl2 |= aieMask;
     write_register(RV3032_CONTROL2, ctrl2);
   }
