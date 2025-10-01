@@ -219,7 +219,9 @@ Rv3032BackupSwitchoverMode RTC_RV3032::backupSwitchoverMode()
 {
   uint8_t pmu = read_register(RV3032_PMU);
   uint8_t bsmMask = (1 << RV3032_PMU_BIT_BSM_HIGH) | (1 << RV3032_PMU_BIT_BSM_LOW);
+  printf("pmu is %u\n", pmu);
   uint8_t bsm = (pmu & bsmMask) >> RV3032_PMU_BIT_BSM_LOW;
+  printf("bsm is %u\n", bsm);
   return static_cast<Rv3032BackupSwitchoverMode>(bsm);
 }
 
