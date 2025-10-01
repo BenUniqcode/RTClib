@@ -7,8 +7,8 @@
 #define RV3032_CONTROL2 0x11   ///< Control2 register
 #define RV3032_CONTROL3 0x12   ///< Control2 register
 #define RV3032_STATUS 0x0D ///< Status register
-#define RV3032_TEMPERATURE 0x0E ///< Temperature register (LSB and status) (MSB is 0x0F)
-#define RV3032_EECMD = 0x3F
+#define RV3032_TEMPERATURE 0x0E ///< Temperature register (LSB and flags) (MSB is 0x0F)
+#define RV3032_EECMD 0x3F // EEPROM Command register (write only)
 #define RV3032_NVRAM 0x40 ///< Start of RAM - 16 bytes
 #define RV3032_PMU 0xC0 // EEPROM Power Management Unit register
 // Bits within CONTROL registers that we are interested in

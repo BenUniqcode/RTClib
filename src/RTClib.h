@@ -541,7 +541,6 @@ public:
   void clearAlarm();
   float getTemperature(); // in Celsius degree
   bool backupSwitchoverFlag(); // Cleared on read
-  bool eepromBusyFlag(); // Cleared on read
   bool waitForEEPROM(); // Wait upto 80ms for the EEBUSY flag to clear
   void disableEEPROMRefresh(); // Set EERD flag
   void enableEEPROMRefresh(); // Clear EERD flag
