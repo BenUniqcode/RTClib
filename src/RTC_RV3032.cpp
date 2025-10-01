@@ -220,7 +220,7 @@ Rv3032BackupSwitchoverMode RTC_RV3032::backupSwitchoverMode()
   uint8_t pmu = read_register(RV3032_PMU);
   uint8_t bsmMask = (1 << RV3032_PMU_BIT_BSM_HIGH) | (1 << RV3032_PMU_BIT_BSM_LOW);
   uint8_t bsm = (pmu & bsmMask) >> RV3032_PMU_BIT_BSM_LOW;
-  return bsm;
+  return static_cast<Rv3032BackupSwitchoverMode>(bsm);
 }
 
 /**************************************************************************/
@@ -230,7 +230,7 @@ Rv3032BackupSwitchoverMode RTC_RV3032::backupSwitchoverMode()
 /**************************************************************************/
 void RTC_RV3032::disableEEPROMRefresh()
 {
-  const eerdMask = 1 << RV3032_CONTROL1_BIT_EERD;
+  const uint8_t eerdMask = 1 << RV3032_CONTROL1_BIT_EERD;
   uint8_t control1 = read_register(RV3032_CONTROL1);
   control1 |= eerdMask;
   write_register(RV3032_CONTROL1, control1);
@@ -243,7 +243,7 @@ void RTC_RV3032::disableEEPROMRefresh()
 /**************************************************************************/
 void RTC_RV3032::enableEEPROMRefresh()
 {
-  const eerdMask = 1 << RV3032_CONTROL1_BIT_EERD;
+  const uint8_t eerdMask = 1 << RV3032_CONTROL1_BIT_EERD;
   uint8_t control1 = read_register(RV3032_CONTROL1);
   control1 &= ~eerdMask;
   write_register(RV3032_CONTROL1, control1);
