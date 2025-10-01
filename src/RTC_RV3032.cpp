@@ -134,11 +134,12 @@ float RTC_RV3032::getTemperature() {
   uint8_t buffer[2] = {RV3032_TEMPERATURE, 0};
   i2c_dev->write_then_read(buffer, 1, buffer, 2);
   // Whereas the DS3232 is MSB-first, the RV3032 is LSB-first. 
-  // Also the fractional part is 4 bits instead of 2. Otherwise it's basically the same.
-  // First we convert the full 12 bits into a signed integer, then multiply by 0.0625 to get
-  // a signed float of the number of degrees.
-  int16_t signedVal = ((int8_t)buffer[1] << 4) + (buffer[0] >> 4);
-  return signedVal * 0.0625;
+  // The fractional part is 4 bits instead of 2, but that doesn't matter for this method.
+  // What does matter is the remaining 4 bits are used for flags, so unlike the DS* they
+  // are not guaranteed to be zero, and must be explicitly ignored. 
+  // Otherwise it's broadly the same, so we use a similar method to https://github.com/adafruit/RTClib/pull/303
+  int16_t temp = uint16_t(buffer[1]) << 8 | (buffer[0] & 0xf0);
+  return temp * (1 / 256.0);
 }
 
 /**************************************************************************/
