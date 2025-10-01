@@ -114,10 +114,9 @@ void RTC_DS3231::writeSqwPinMode(Ds3231SqwPinMode mode) {
 float RTC_DS3231::getTemperature() {
   uint8_t buffer[2] = {DS3231_TEMPERATUREREG, 0};
   i2c_dev->write_then_read(buffer, 1, buffer, 2);
-  // First convert the full 10 bits into a signed integer, then multiply by 0.25 to get
-  // a signed float of the number of degrees.
-  int16_t signedVal = ((int8_t)buffer[0] << 2) + (buffer[1] >> 6);
-  return signedVal * 0.25;
+  // Fix for negative temperatures https://github.com/adafruit/RTClib/pull/303
+  int16_t temp = uint16_t(buffer[0]) << 8 | buffer[1];
+  return temp * (1 / 256.0);
 }
 
 /**************************************************************************/
