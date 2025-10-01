@@ -1,3 +1,12 @@
+# About this fork of RTClib
+This is Ben Wheeler's fork of RTClib. It adds support for:
+* Analog Devices DS3232, including reading and writing its 236 bytes of user SRAM.
+* Micro Crystal RV-3032 (only core functionality implemented).
+
+It also fixes a bug with the DS3231's getTemperature() implementation which caused it to fail for negative temperatures (below 0degC). The fixed implementation is used for the DS3232 as well.
+
+Upstream README follows from here.
+
 # RTClib [![Build Status](https://github.com/adafruit/RTClib/workflows/Arduino%20Library%20CI/badge.svg)](https://github.com/adafruit/RTClib/actions)[![Documentation](https://github.com/adafruit/ci-arduino/blob/master/assets/doxygen_badge.svg)](http://adafruit.github.io/RTClib/html/index.html)
 
 This is a fork of JeeLab's fantastic real time clock library for Arduino.
