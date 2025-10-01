@@ -258,7 +258,7 @@ void RTC_RV3032::enableEEPROMRefresh()
 bool RTC_RV3032::waitForEEPROM()
 {
   const unsigned long timeout = millis() + 80;
-  const eebusyMask = 1 << RV3032_TEMPERATURE_BIT_EEBUSY;
+  const uint8_t eebusyMask = 1 << RV3032_TEMPERATURE_BIT_EEBUSY;
   uint8_t templsb = read_register(RV3032_TEMPERATURE);
   while ((templsb & eebusyMask) && millis() < timeout) {
     delay(5);
