@@ -232,6 +232,7 @@ Rv3032BackupSwitchoverMode RTC_RV3032::backupSwitchoverMode()
 /**************************************************************************/
 void RTC_RV3032::disableEEPROMRefresh()
 {
+  printf("Disable EEPROM refresh\n");
   const uint8_t eerdMask = 1 << RV3032_CONTROL1_BIT_EERD;
   uint8_t control1 = read_register(RV3032_CONTROL1);
   control1 |= eerdMask;
@@ -245,6 +246,7 @@ void RTC_RV3032::disableEEPROMRefresh()
 /**************************************************************************/
 void RTC_RV3032::enableEEPROMRefresh()
 {
+  printf("Enable EEPROM refresh\n");
   const uint8_t eerdMask = 1 << RV3032_CONTROL1_BIT_EERD;
   uint8_t control1 = read_register(RV3032_CONTROL1);
   control1 &= ~eerdMask;
@@ -259,6 +261,7 @@ void RTC_RV3032::enableEEPROMRefresh()
 /**************************************************************************/
 bool RTC_RV3032::waitForEEPROM()
 {
+  printf("Wait for EEPROM\n");
   const unsigned long timeout = millis() + 80;
   const uint8_t eebusyMask = 1 << RV3032_TEMPERATURE_BIT_EEBUSY;
   uint8_t templsb = read_register(RV3032_TEMPERATURE);
@@ -296,6 +299,7 @@ bool RTC_RV3032::setBackupSwitchoverMode(Rv3032BackupSwitchoverMode bsm)
   }
 
   // 2. Update the value of BSM in the RAM Mirror
+  printf("Setting BSM to %u in RAM Mirror\n", bsm);
   uint8_t pmu = read_register(RV3032_PMU);
   uint8_t bsmMask = (1 << RV3032_PMU_BIT_BSM_HIGH) | (1 << RV3032_PMU_BIT_BSM_LOW);
   pmu &= ~bsmMask;
@@ -303,6 +307,7 @@ bool RTC_RV3032::setBackupSwitchoverMode(Rv3032BackupSwitchoverMode bsm)
   write_register(RV3032_PMU, pmu);
 
   // 4. Update EEPROM
+  printf("Writing EEPROM Update command\n");
   write_register(RV3032_EECMD, 0x11); // "Update" command
 
   // 5. Wait for update to finish (should take ~46ms)
@@ -316,9 +321,13 @@ bool RTC_RV3032::setBackupSwitchoverMode(Rv3032BackupSwitchoverMode bsm)
 
   // 6. Check EEF
   uint8_t templsb = read_register(RV3032_TEMPERATURE);
+  printf("TempLSB is %u\n", templsb);
+  printf("EEF is %u\n", templsb & (1 << RV3032_TEMPERATURE_BIT_EEF));
   if (templsb & (1 << RV3032_TEMPERATURE_BIT_EEF)) {
+    printf("Fail");
     return false;
   }
+  printf("Success");
   return true;
 }
 
