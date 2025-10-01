@@ -211,22 +211,6 @@ bool RTC_RV3032::alarmFired() {
 
 /**************************************************************************/
 /*!
-        @brief  Get current Backup Switchover Mode
-                @return See enum Rv3032BackupSwitchoverMode
-*/
-/**************************************************************************/
-Rv3032BackupSwitchoverMode RTC_RV3032::backupSwitchoverMode()
-{
-  uint8_t pmu = read_register(RV3032_PMU);
-  uint8_t bsmMask = (1 << RV3032_PMU_BIT_BSM_HIGH) | (1 << RV3032_PMU_BIT_BSM_LOW);
-  printf("pmu is %u\n", pmu);
-  uint8_t bsm = (pmu & bsmMask) >> RV3032_PMU_BIT_BSM_LOW;
-  printf("bsm is %u\n", bsm);
-  return static_cast<Rv3032BackupSwitchoverMode>(bsm);
-}
-
-/**************************************************************************/
-/*!
         @brief  Set EERD flag to disable EEPROM refresh prior to updating it
 */
 /**************************************************************************/
@@ -278,11 +262,22 @@ bool RTC_RV3032::waitForEEPROM()
 
 /**************************************************************************/
 /*!
+        @brief  Get current value of PMU register
+                @return Current value of PMU register from RAM Mirror of EEPROM
+*/
+/**************************************************************************/
+uint8_t RTC_RV3032::getPMU()
+{
+  return read_register(RV3032_PMU);
+}
+
+/**************************************************************************/
+/*!
         @brief  Set Backup Switchover Mode to the supplied mode
                 @return True if success, false otherwise
 */
 /**************************************************************************/
-bool RTC_RV3032::setBackupSwitchoverMode(Rv3032BackupSwitchoverMode bsm)
+bool RTC_RV3032::setPMU(uint8_t pmu)
 {
   // Although it is possible to write single bytes to the EEPROM (as long as you also
   // update the RAM mirror, because that's what is used for the current config), the 
@@ -298,12 +293,9 @@ bool RTC_RV3032::setBackupSwitchoverMode(Rv3032BackupSwitchoverMode bsm)
     return false;
   }
 
-  // 2. Update the value of BSM in the RAM Mirror
-  printf("Setting BSM to %u in RAM Mirror\n", bsm);
-  uint8_t pmu = read_register(RV3032_PMU);
-  uint8_t bsmMask = (1 << RV3032_PMU_BIT_BSM_HIGH) | (1 << RV3032_PMU_BIT_BSM_LOW);
-  pmu &= ~bsmMask;
-  pmu |= bsm;
+  // 2. Update the value of the PMU in the RAM Mirror
+  uint8_t oldPmu = read_register(RV3032_PMU);
+  printf("Changing PMU from %u to %u", oldPmu, pmu);
   write_register(RV3032_PMU, pmu);
 
   // 4. Update EEPROM

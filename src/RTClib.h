@@ -544,8 +544,8 @@ public:
   bool waitForEEPROM(); // Wait upto 80ms for the EEBUSY flag to clear
   void disableEEPROMRefresh(); // Set EERD flag
   void enableEEPROMRefresh(); // Clear EERD flag
-  Rv3032BackupSwitchoverMode backupSwitchoverMode();
-  bool setBackupSwitchoverMode(Rv3032BackupSwitchoverMode mode);
+  uint8_t getPMU(); // Get current value of PMU register
+  bool setPMU(uint8_t pmu); // Set PMU register and update EEPROM
 };
 
 /**************************************************************************/
