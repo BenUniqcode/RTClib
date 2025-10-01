@@ -140,6 +140,12 @@ enum Rv3032AlarmMode {
   RV3032_AlarmMode_Every_Minute = 0,
 };
 
+enum Rv3032BackupSwitchoverMode : uint8_t {
+  RV3032_BSM_Disabled = 0,
+  RV3032_BSM_Direct = 1,
+  RV3032_BSM_Level = 2,
+  RV3032_BSM_Disabled2 = 3, // There's no difference with 0, but both values are possible
+};
 
 /** PCF8523 INT/SQW pin mode settings */
 enum Pcf8523SqwPinMode {
@@ -528,14 +534,19 @@ public:
   void adjust(const DateTime &dt);
   bool lostPower();
   void clearLostPower();
-  bool backupSwitchoverFlag(); // Cleared on read
-  bool eepromBusyFlag(); // Cleared on read
   DateTime now();
   bool setAlarm(const DateTime &dt, Rv3032AlarmMode alarm_mode);
   void disableAlarm();
   bool alarmFired();
   void clearAlarm();
   float getTemperature(); // in Celsius degree
+  bool backupSwitchoverFlag(); // Cleared on read
+  bool eepromBusyFlag(); // Cleared on read
+  bool waitForEEPROM(); // Wait upto 80ms for the EEBUSY flag to clear
+  void disableEEPROMRefresh(); // Set EERD flag
+  void enableEEPROMRefresh(); // Clear EERD flag
+  Rv3032BackupSwitchoverMode backupSwitchoverMode();
+  bool setBackupSwitchoverMode(Rv3032BackupSwitchoverMode mode);
 };
 
 /**************************************************************************/

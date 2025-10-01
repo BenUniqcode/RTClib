@@ -8,8 +8,11 @@
 #define RV3032_CONTROL3 0x12   ///< Control2 register
 #define RV3032_STATUS 0x0D ///< Status register
 #define RV3032_TEMPERATURE 0x0E ///< Temperature register (LSB and status) (MSB is 0x0F)
+#define RV3032_EECMD = 0x3F
 #define RV3032_NVRAM 0x40 ///< Start of RAM - 16 bytes
+#define RV3032_PMU 0xC0 // EEPROM Power Management Unit register
 // Bits within CONTROL registers that we are interested in
+#define RV3032_CONTROL1_BIT_EERD 2 // EEPROM Refresh Disable
 #define RV3032_CONTROL2_BIT_AIE 3 // Alarm Interrupt Enable
 // Bits within STATUS register that we are interested in
 #define RV3032_STATUS_BIT_PORF 1 // Power On Reset Flag - set when starting after power loss
@@ -17,6 +20,10 @@
 // Bits within the TEMPERATURE register that we are interested in
 #define RV3032_TEMPERATURE_BIT_BSF 0
 #define RV3032_TEMPERATURE_BIT_EEBUSY 2
+#define RV3032_TEMPERATURE_BIT_EEF 3
+// Bits within the PMU register that we are interested in
+#define RV3032_PMU_BIT_BSM_HIGH 5
+#define RV3032_PMU_BIT_BSM_LOW 4
 
 /**************************************************************************/
 /*!
@@ -75,25 +82,13 @@ bool RTC_RV3032::backupSwitchoverFlag()
 
 /**************************************************************************/
 /*!
-        @brief  Check the EEBUSY flag to see if the EEPROM is busy. Cleared on read.
-        @return True if the bit is set or false if not
-*/
-/**************************************************************************/
-bool RTC_RV3032::eepromBusyFlag()
-{
-  // EEBUSY is in the first byte of the temperature register
-  uint8_t reg = read_register(RV3032_TEMPERATURE);
-  return reg & (1 << RV3032_TEMPERATURE_BIT_EEBUSY);
-}
-
-/**************************************************************************/
-/*!
         @brief  Set the date and time
         @param dt DateTime object containing the date/time to set
 */
 /**************************************************************************/
 void RTC_RV3032::adjust(const DateTime &dt) {
-  // Although the RV3032 
+  // Although the RV3032 has a 1/100th of a second register, it is not writeable
+  // Writing to the seconds register ensures a safe time update. 
   uint8_t buffer[8] = {RV3032_TIME,
                        bin2bcd(dt.second()),
                        bin2bcd(dt.minute()),
@@ -212,5 +207,116 @@ void RTC_RV3032::clearAlarm() {
 /**************************************************************************/
 bool RTC_RV3032::alarmFired() {
   return (read_register(RV3032_STATUS) & (1 << RV3032_STATUS_BIT_AF));
+}
+
+/**************************************************************************/
+/*!
+        @brief  Get current Backup Switchover Mode
+                @return See enum Rv3032BackupSwitchoverMode
+*/
+/**************************************************************************/
+Rv3032BackupSwitchoverMode RTC_RV3032::backupSwitchoverMode()
+{
+  uint8_t pmu = read_register(RV3032_PMU);
+  uint8_t bsmMask = (1 << RV3032_PMU_BIT_BSM_HIGH) | (1 << RV3032_PMU_BIT_BSM_LOW);
+  uint8_t bsm = (pmu & bsmMask) >> RV3032_PMU_BIT_BSM_LOW;
+  return bsm;
+}
+
+/**************************************************************************/
+/*!
+        @brief  Set EERD flag to disable EEPROM refresh prior to updating it
+*/
+/**************************************************************************/
+void RTC_RV3032::disableEEPROMRefresh()
+{
+  const eerdMask = 1 << RV3032_CONTROL1_BIT_EERD;
+  uint8_t control1 = read_register(RV3032_CONTROL1);
+  control1 |= eerdMask;
+  write_register(RV3032_CONTROL1, control1);
+}
+
+/**************************************************************************/
+/*!
+        @brief  Clear EERD flag to re-enable EEPROM refresh
+*/
+/**************************************************************************/
+void RTC_RV3032::enableEEPROMRefresh()
+{
+  const eerdMask = 1 << RV3032_CONTROL1_BIT_EERD;
+  uint8_t control1 = read_register(RV3032_CONTROL1);
+  control1 &= ~eerdMask;
+  write_register(RV3032_CONTROL1, control1);
+}
+
+/**************************************************************************/
+/*!
+        @brief  Wait upto 80ms for the EEBUSY flag to clear
+                @return True if clear, false if timed out
+*/
+/**************************************************************************/
+bool RTC_RV3032::waitForEEPROM()
+{
+  const unsigned long timeout = millis() + 80;
+  const eebusyMask = 1 << RV3032_TEMPERATURE_BIT_EEBUSY;
+  uint8_t templsb = read_register(RV3032_TEMPERATURE);
+  while ((templsb & eebusyMask) && millis() < timeout) {
+    delay(5);
+    templsb = read_register(RV3032_TEMPERATURE);
+  }
+  if (templsb & eebusyMask) {
+    // Timeout
+    return false;
+  }
+  return true;
+}
+
+/**************************************************************************/
+/*!
+        @brief  Set Backup Switchover Mode to the supplied mode
+                @return True if success, false otherwise
+*/
+/**************************************************************************/
+bool RTC_RV3032::setBackupSwitchoverMode(Rv3032BackupSwitchoverMode bsm)
+{
+  // Although it is possible to write single bytes to the EEPROM (as long as you also
+  // update the RAM mirror, because that's what is used for the current config), the 
+  // datasheet recommends updating the RAM mirror and then issuing an Update command 
+  // to copy the whole lot back to the EEPROM.
+
+  // 1. Set EERD to prevent refresh during EEPROM access
+  disableEEPROMRefresh();
+
+  // 3. If EEBUSY is set, wait for it to clear. If that failed, re-enable refresh and return false.
+  if (!waitForEEPROM()) {
+    enableEEPROMRefresh();
+    return false;
+  }
+
+  // 2. Update the value of BSM in the RAM Mirror
+  uint8_t pmu = read_register(RV3032_PMU);
+  uint8_t bsmMask = (1 << RV3032_PMU_BIT_BSM_HIGH) | (1 << RV3032_PMU_BIT_BSM_LOW);
+  pmu &= ~bsmMask;
+  pmu |= bsm;
+  write_register(RV3032_PMU, pmu);
+
+  // 4. Update EEPROM
+  write_register(RV3032_EECMD, 0x11); // "Update" command
+
+  // 5. Wait for update to finish (should take ~46ms)
+  if (!waitForEEPROM()) {
+    enableEEPROMRefresh();
+    return false;
+  }
+
+  // 5. Clear EERD
+  enableEEPROMRefresh();
+
+  // 6. Check EEF
+  uint8_t templsb = read_register(RV3032_TEMPERATURE);
+  if (templsb & (1 << RV3032_TEMPERATURE_BIT_EEF)) {
+    return false;
+  }
+  return true;
 }
 
