@@ -114,7 +114,10 @@ void RTC_DS3231::writeSqwPinMode(Ds3231SqwPinMode mode) {
 float RTC_DS3231::getTemperature() {
   uint8_t buffer[2] = {DS3231_TEMPERATUREREG, 0};
   i2c_dev->write_then_read(buffer, 1, buffer, 2);
-  return (float)buffer[0] + (buffer[1] >> 6) * 0.25f;
+  // First convert the full 10 bits into a signed integer, then multiply by 0.25 to get
+  // a signed float of the number of degrees.
+  int16_t signedVal = ((int8_t)buffer[0] << 2) + (buffer[1] >> 6);
+  return signedVal * 0.25;
 }
 
 /**************************************************************************/
