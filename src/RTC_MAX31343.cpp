@@ -1,15 +1,22 @@
 #include "RTClib.h"
 
-#define MAX31343_ADDRESS 0x68   ///< I2C address for MAX31343
-#define MAX31343_TIME 0x00      ///< Time register
-#define MAX31343_ALARM1 0x07    ///< Alarm 1 register
-#define MAX31343_ALARM2 0x0B    ///< Alarm 2 register
-#define MAX31343_CONTROL 0x0E   ///< Control register
-#define MAX31343_STATUSREG 0x0F ///< Status register
-#define MAX31343_TEMPERATUREREG                                                  \
-  0x11 ///< Temperature register (high byte - low byte is at 0x12), 10-bit
-///< temperature value
-#define MAX31343_NVRAM 0x14 ///< Start of RAM registers - 236 bytes, 0x14 to 0xEC
+#define MAX31343_ADDRESS 0xD0    ///< I2C address for MAX31343
+#define MAX31343_STATUSREG 0x00  ///< Status register
+#define MAX31343_INT_EN 0x01     ///< Interrupt Enable register
+#define MAX31343_RTC_RESET 0x02  ///< Reset register
+#define MAX31343_RTC_CONFIG1 0x03 ///< RTC Config1 register
+#define MAX31343_RTC_CONFIG2 0x04 ///< RTC Config2 register
+#define MAX31343_TIMER_CONFIG 0x05 ///< Timer Config register
+#define MAX31343_TIME 0x06       ///< Time register
+#define MAX31343_ALARM1 0x0D     ///< Alarm 1 register
+#define MAX31343_ALARM2 0x13     ///< Alarm 2 register
+#define MAX31343_TIMER_COUNT 0x16     ///< Timer Count register
+#define MAX31343_TIMER_INIT 0x17     ///< Timer Init register
+#define MAX31343_PWR_MGMT 0x17     ///< Power Management register
+#define MAX31343_TRICKLE 0x17     ///< Trickle Charging register
+#define MAX31343_TEMPERATUREREG 0x1A ///< Temperature register (high byte - low byte is at 0x1B), 10-bit 2's complement
+#define MAX31413_TS_CONFIG 0x1C //< Temperature Sensor Config register
+#define MAX31343_NVRAM 0x22 ///< Start of RAM registers - 64 bytes, 0x22 to 0x61
 /**************************************************************************/
 /*!
         @brief  Start I2C for the MAX31343 and test succesful connection
@@ -35,29 +42,32 @@ boolean RTC_MAX31343::begin(TwoWire *wireInstance) {
 */
 /**************************************************************************/
 bool RTC_MAX31343::lostPower(void) {
-  return read_register(MAX31343_STATUSREG) >> 7;
+  return (read_register(MAX31343_STATUSREG) >> 6) & 1;
 }
 
 /**************************************************************************/
 /*!
-        @brief  Set the date and flip the Oscillator Stop Flag
+        @brief  Set the date and clear the Oscillator Stop Flag
         @param dt DateTime object containing the date/time to set
 */
 /**************************************************************************/
 void RTC_MAX31343::adjust(const DateTime &dt) {
+  // The top bit of the month register indicates the century: 20 or 21
+  uint8_t month = bin2bcd(dt.month());
+  if (dt.year() > 2099) {
+    month |= 0x80;
+  }
   uint8_t buffer[8] = {MAX31343_TIME,
                        bin2bcd(dt.second()),
                        bin2bcd(dt.minute()),
                        bin2bcd(dt.hour()),
-                       bin2bcd(dowToMAX31343(dt.dayOfTheWeek())),
+                       dt.dayOfTheWeek(),
                        bin2bcd(dt.day()),
-                       bin2bcd(dt.month()),
+                       month,
                        bin2bcd(dt.year() - 2000U)};
   i2c_dev->write(buffer, 8);
 
-  uint8_t statreg = read_register(MAX31343_STATUSREG);
-  statreg &= ~0x80; // flip OSF bit
-  write_register(MAX31343_STATUSREG, statreg);
+  clearOSF();
 }
 
 /**************************************************************************/
@@ -79,30 +89,25 @@ DateTime RTC_MAX31343::now() {
 /**************************************************************************/
 /*!
         @brief  Read the SQW pin mode
-        @return Pin mode, see Ds3232SqwPinMode enum
+        @return Pin mode, see Max31413SqwPinMode enum
 */
 /**************************************************************************/
-Ds3232SqwPinMode RTC_MAX31343::readSqwPinMode() {
+Max31413SqwPinMode RTC_MAX31343::readSqwPinMode() {
   int mode;
-  mode = read_register(MAX31343_CONTROL) & 0x1C;
-  if (mode & 0x04)
-    mode = MAX31343_OFF;
-  return static_cast<Ds3232SqwPinMode>(mode);
+  mode = read_register(MAX31343_RTC_CONFIG2) & 0x07;
+  return static_cast<Max31413SqwPinMode>(mode);
 }
 
 /**************************************************************************/
 /*!
         @brief  Set the SQW pin mode
-        @param mode Desired mode, see Ds3232SqwPinMode enum
+        @param mode Desired mode, see Max31413SqwPinMode enum
 */
 /**************************************************************************/
-void RTC_MAX31343::writeSqwPinMode(Ds3232SqwPinMode mode) {
-  uint8_t ctrl = read_register(MAX31343_CONTROL);
-
-  ctrl &= ~0x04; // turn off INTCON
-  ctrl &= ~0x18; // set freq bits to 0
-
-  write_register(MAX31343_CONTROL, ctrl | mode);
+void RTC_MAX31343::writeSqwPinMode(Max31413SqwPinMode mode) {
+  uint8_t config = read_register(MAX31343_RTC_CONFIG2);
+  config &= ~0x7; // clear relevant bits
+  write_register(MAX31343_RTC_CONFIG2, ctrl | mode);
 }
 
 /**************************************************************************/
@@ -123,31 +128,29 @@ float RTC_MAX31343::getTemperature() {
 /*!
         @brief  Set alarm 1 for MAX31343
                 @param 	dt DateTime object
-                @param 	alarm_mode Desired mode, see Ds3232Alarm1Mode enum
+                @param 	alarm_mode Desired mode, see Max31413Alarm1Mode enum
         @return False if control register is not set, otherwise true
 */
 /**************************************************************************/
-bool RTC_MAX31343::setAlarm1(const DateTime &dt, Ds3232Alarm1Mode alarm_mode) {
-  uint8_t ctrl = read_register(MAX31343_CONTROL);
-  if (!(ctrl & 0x04)) {
-    return false;
-  }
-
+bool RTC_MAX31343::setAlarm1(const DateTime &dt, Max31413Alarm1Mode alarm_mode) {
   uint8_t A1M1 = (alarm_mode & 0x01) << 7; // Seconds bit 7.
   uint8_t A1M2 = (alarm_mode & 0x02) << 6; // Minutes bit 7.
   uint8_t A1M3 = (alarm_mode & 0x04) << 5; // Hour bit 7.
   uint8_t A1M4 = (alarm_mode & 0x08) << 4; // Day/Date bit 7.
-  uint8_t DY_DT = (alarm_mode & 0x10)
-                  << 2; // Day/Date bit 6. Date when 0, day of week when 1.
-  uint8_t day = (DY_DT) ? dowToMAX31343(dt.dayOfTheWeek()) : dt.day();
+  uint8_t A1M5 = (alarm_mode & 0x10) << 3; // Month bit 7.
+  uint8_t A1M6 = (alarm_mode & 0x20) << 1; // Month bit 6.
+  uint8_t DY_DT = (alarm_mode & 0x40); // Day/Date bit 6. Date when 0, day of week when 1.
+  uint8_t day = (DY_DT) ? dt.dayOfTheWeek() : dt.day();
 
   uint8_t buffer[5] = {MAX31343_ALARM1, uint8_t(bin2bcd(dt.second()) | A1M1),
                        uint8_t(bin2bcd(dt.minute()) | A1M2),
                        uint8_t(bin2bcd(dt.hour()) | A1M3),
-                       uint8_t(bin2bcd(day) | A1M4 | DY_DT)};
+                       uint8_t(bin2bcd(day)) | A1M4 | DY_DT),
+                       uint8_t(bin2bcd(dt.month()) | A1M5 | A1M6,
+                       uint8_t(bin2bcd(dt.year() - 2000U))};
   i2c_dev->write(buffer, 5);
-
-  write_register(MAX31343_CONTROL, ctrl | 0x01); // AI1E
+  uint8_t int_en = read_register(MAX31343_INT_EN);
+  write_register(MAX31343_INT_EN, int_en | 0x01); // A1IE
 
   return true;
 }
@@ -156,29 +159,25 @@ bool RTC_MAX31343::setAlarm1(const DateTime &dt, Ds3232Alarm1Mode alarm_mode) {
 /*!
         @brief  Set alarm 2 for MAX31343
                 @param 	dt DateTime object
-                @param 	alarm_mode Desired mode, see Ds3232Alarm2Mode enum
+                @param 	alarm_mode Desired mode, see Max31413Alarm2Mode enum
         @return False if control register is not set, otherwise true
 */
 /**************************************************************************/
-bool RTC_MAX31343::setAlarm2(const DateTime &dt, Ds3232Alarm2Mode alarm_mode) {
-  uint8_t ctrl = read_register(MAX31343_CONTROL);
-  if (!(ctrl & 0x04)) {
-    return false;
-  }
-
+bool RTC_MAX31343::setAlarm2(const DateTime &dt, Max31413Alarm2Mode alarm_mode) {
   uint8_t A2M2 = (alarm_mode & 0x01) << 7; // Minutes bit 7.
   uint8_t A2M3 = (alarm_mode & 0x02) << 6; // Hour bit 7.
   uint8_t A2M4 = (alarm_mode & 0x04) << 5; // Day/Date bit 7.
   uint8_t DY_DT = (alarm_mode & 0x08)
                   << 3; // Day/Date bit 6. Date when 0, day of week when 1.
-  uint8_t day = (DY_DT) ? dowToMAX31343(dt.dayOfTheWeek()) : dt.day();
+  uint8_t day = (DY_DT) ? dt.dayOfTheWeek() : dt.day();
 
   uint8_t buffer[4] = {MAX31343_ALARM2, uint8_t(bin2bcd(dt.minute()) | A2M2),
                        uint8_t(bin2bcd(dt.hour()) | A2M3),
                        uint8_t(bin2bcd(day) | A2M4 | DY_DT)};
   i2c_dev->write(buffer, 4);
 
-  write_register(MAX31343_CONTROL, ctrl | 0x02); // AI2E
+  uint8_t int_en = read_register(MAX31343_INT_EN);
+  write_register(MAX31343_INT_EN, int_en | 0x02); // A2IE
 
   return true;
 }
@@ -190,9 +189,9 @@ bool RTC_MAX31343::setAlarm2(const DateTime &dt, Ds3232Alarm2Mode alarm_mode) {
 */
 /**************************************************************************/
 void RTC_MAX31343::disableAlarm(uint8_t alarm_num) {
-  uint8_t ctrl = read_register(MAX31343_CONTROL);
-  ctrl &= ~(1 << (alarm_num - 1));
-  write_register(MAX31343_CONTROL, ctrl);
+  uint8_t int_en = read_register(MAX31343_INT_EN);
+  int_en &= ~(1 << (alarm_num - 1));
+  write_register(MAX31343_INT_EN, int_en);
 }
 
 /**************************************************************************/
@@ -220,71 +219,36 @@ bool RTC_MAX31343::alarmFired(uint8_t alarm_num) {
 
 /**************************************************************************/
 /*!
-        @brief  Enable 32KHz Output
-        @details The 32kHz output is enabled by default. It requires an external
-        pull-up resistor to function correctly
+        @brief  Enable Clock Output on CLKO pin
+        @details The MAX31343's clock output is configurable for different frequencies
 */
 /**************************************************************************/
-void RTC_MAX31343::enable32K(void) {
-  uint8_t status = read_register(MAX31343_STATUSREG);
-  status |= (0x1 << 0x03);
-  write_register(MAX31343_STATUSREG, status);
+void RTC_MAX31343::enableClkOut(Max31343ClkFreq freq) {
+  uint8_t config2 = read_register(MAX31343_RTC_CONFIG2);
+  config2 &= 0x7; // Clear everything except the bottom 3 bits, which are the SQW freq
+  config2 |= 0x80 | freq;
+  write_register(MAX31343_RTC_CONFIG2, config2);
 }
 
 /**************************************************************************/
 /*!
-        @brief  Disable 32KHz Output
+        @brief  Disable Clock Output on CLKO pin
 */
 /**************************************************************************/
-void RTC_MAX31343::disable32K(void) {
-  uint8_t status = read_register(MAX31343_STATUSREG);
-  status &= ~(0x1 << 0x03);
-  write_register(MAX31343_STATUSREG, status);
+void RTC_MAX31343::disableClkOut(void) {
+  uint8_t config2 = read_register(MAX31343_RTC_CONFIG2);
+  config2 &= ~0x80; // Clear top bit
+  write_register(MAX31343_RTC_CONFIG2, config2);
 }
 
 /**************************************************************************/
 /*!
-        @brief  Get status of 32KHz Output
+        @brief  Get status of Clock Output
         @return True if enabled otherwise false
 */
 /**************************************************************************/
-bool RTC_MAX31343::isEnabled32K(void) {
-  return (read_register(MAX31343_STATUSREG) >> 0x03) & 0x01;
-}
-/**************************************************************************/
-
-/**************************************************************************/
-/*!
-        @brief  Enable BB32KHZ Output
-        @details The 32kHz output is enabled by default. It requires an external
-        pull-up resistor to function correctly
-*/
-/**************************************************************************/
-void RTC_MAX31343::enableBB32KHZ(void) {
-  uint8_t status = read_register(MAX31343_STATUSREG);
-  status |= (0x1 << 0x06);
-  write_register(MAX31343_STATUSREG, status);
-}
-
-/**************************************************************************/
-/*!
-        @brief  Disable BB32KHZ Output
-*/
-/**************************************************************************/
-void RTC_MAX31343::disableBB32KHZ(void) {
-  uint8_t status = read_register(MAX31343_STATUSREG);
-  status &= ~(0x1 << 0x06);
-  write_register(MAX31343_STATUSREG, status);
-}
-
-/**************************************************************************/
-/*!
-        @brief  Get status of BB32KHZ Output
-        @return True if enabled otherwise false
-*/
-/**************************************************************************/
-bool RTC_MAX31343::isEnabledBB32KHZ(void) {
-  return (read_register(MAX31343_STATUSREG) >> 0x06) & 0x01;
+bool RTC_MAX31343::isEnabledClkOut(void) {
+  return (read_register(MAX31343_RTC_CONFIG2) >> 7) & 0x01;
 }
 
 /**************************************************************************/
@@ -304,45 +268,8 @@ bool RTC_MAX31343::isEnabledBB32KHZ(void) {
 void RTC_MAX31343::clearOSF(void) {
 
   uint8_t statreg = read_register(MAX31343_STATUSREG);
-  statreg &= ~0x80; // flip OSF bit
+  statreg &= ~0x40; // clear OSF bit
   write_register(MAX31343_STATUSREG, statreg);
-}
-/**************************************************************************/
-/*!
-        @brief  Enable EOSF. Enable Oscillator (EOSC) Bit 7 of Control Register
-   (0Eh)
-        @details When set to logic 0, the oscillator is started (inverted
-   logic). When set to logic 1, the oscillator is stopped when the MAX31343
-   switches to battery power. This bit is clear (logic 0) when power is first
-   applied. When the MAX31343 is powered by VCC, the oscillator is always on
-   regardless of the status of the EOSC bit. When EOSC is disabled, all register
-   data is static.
-*/
-/**************************************************************************/
-void RTC_MAX31343::enableEOSC(void) {
-  uint8_t status = read_register(MAX31343_CONTROL);
-  status &= ~(0x1 << 0x07);
-  write_register(MAX31343_CONTROL, status);
-}
-/**************************************************************************/
-/*!
-        @brief  Disable EOSF. When set to logic 1, the oscillator is stopped
-   (inverted logic)
-*/
-/**************************************************************************/
-void RTC_MAX31343::disableEOSC(void) {
-  uint8_t status = read_register(MAX31343_CONTROL);
-  status |= (0x1 << 0x07);
-  write_register(MAX31343_CONTROL, status);
-}
-/**************************************************************************/
-/*!
-        @brief  Get status of EOSF
-        @return When set to logic 0, the oscillator is started (inverted logic)
-*/
-/**************************************************************************/
-bool RTC_MAX31343::isEnabledEOSC(void) {
-  return (read_register(MAX31343_CONTROL) >> 0x07) & 0x01;
 }
 
 /**************************************************************************/

@@ -108,7 +108,7 @@ enum Ds3232Alarm1Mode {
 
 /** DS3232 Alarm modes for alarm 2 */
 enum Ds3232Alarm2Mode {
-  DS32312_A2_PerMinute =
+  DS3232_A2_PerMinute =
       0x7,                /**< Alarm once per minute
                                                               (whenever seconds are 0) */
   DS3232_A2_Minute = 0x6, /**< Alarm when minutes match */
@@ -118,6 +118,51 @@ enum Ds3232Alarm2Mode {
                                                            and minutes match */
   DS3232_A2_Day = 0x8 /**< Alarm when day (day of week), hours
                                                            and minutes match */
+};
+
+/** MAX31343 CLKO pin mode settings */
+enum Max31343ClkOutFreq {
+  MAX31343_ClkOut_1Hz = 0x00,  /**<  1.0032Hz */
+  MAX31343_ClkOut_2Hz = 0x01,  /**<  2.0065Hz */
+  MAX31343_ClkOut_4Hz = 0x02,  /**<  4.0130Hz */
+  MAX31343_ClkOut_8Hz = 0x03,  /**<  8.0261Hz */
+  MAX31343_ClkOut_16Hz = 0x04,  /**<  16.0522Hz */
+  MAX31343_ClkOut_32z = 0x05,  /**<  32.1044Hz */
+  MAX31343_ClkOut_64Hz = 0x06,  /**<  64.2089Hz */
+  MAX31343_ClkOut_128Hz = 0x07,  /**<  128.4179Hz */
+  MAX31343_ClkOut_32kHz = 0x08,  /**<  32.875kHz - also any other value up to 0x0F */
+};
+
+/** MAX31343 SQW pin mode settings */
+enum Max31343SqwPinMode {
+  MAX31343_SquareWave1Hz = 0x00,  /**<  1Hz square wave */
+  MAX31343_SquareWave2Hz = 0x01,  /**<  2Hz square wave */
+  MAX31343_SquareWave4Hz = 0x02,  /**<  4Hz square wave */
+  MAX31343_SquareWave8Hz = 0x03,  /**<  8Hz square wave */
+  MAX31343_SquareWave16Hz = 0x04,  /**<  16Hz square wave */
+  MAX31343_SquareWave32Hz = 0x05, /**<  32Hz square wave (NB values 0x06 and 0x07 also mean this) */
+};
+
+/** MAX31343 Alarm modes for alarm 1 - A1M6 to A1M1 (all scattered in different regs) */
+enum Max31343Alarm1Mode {
+  MAX31343_A1_PerSecond = 0x3F, /**< Alarm once per second */
+  MAX31343_A1_Second = 0x3E,    /**< Alarm when seconds match, i.e. once per minute */
+  MAX31343_A1_Minute = 0x3C,    /**< Alarm when minutes and seconds match, i.e. hourly */
+  MAX31343_A1_Hour = 0x38,      /**< Alarm when full time (h:m:s) matches, i.e. daily */
+  MAX31343_A1_DayTime = 0x70,  /**< Alarm when day of week and time matches (i.e. weekly) */
+  MAX31343_A1_DateTime = 0x30,  /**< Alarm when date (day of month) and time matches (i.e. monthly) */
+  MAX31343_A1_MonthDateTime = 0x20, /**< (DY/DT must be unset) Alarm when month and date and time matches (i.e. yearly, or only on leap years if 29th Feb) */
+  MAX31343_A1_YearMonthDateTime = 0x00, /**< (DY/DT must be unset) Alarm when year, month, date and time matches (i.e. once only) */
+};
+
+/** MAX31343 Alarm modes for alarm 2 - A2M4 to A2M2 - NB A2M1 doesn't exist, so 3 bits */
+/** Alarm 2 has no seconds value */
+enum Max31343Alarm2Mode {
+  MAX31343_A2_PerMinute = 0x07, /**< Alarm at 00 seconds past each minute */
+  MAX31343_A2_Minute = 0x06,    /**< Alarm when minutes match, i.e. hourly */
+  MAX31343_A2_Hour = 0x04,      /**< Alarm when hour and minutes match, i.e. daily */
+  MAX31343_A2_DayTime = 0x08,  /**< Alarm when day of week and hh:mm matches, i.e. weekly */
+  MAX31343_A2_DateTime = 0x00,  /**< Alarm when date (day of month) and hh:mm matches, i.e. monthly */
 };
 
 /** RV3032 Bit values for alarm modes - set all that apply */
@@ -498,6 +543,36 @@ public:
   void enableEOSC(void);
   void disableEOSC(void);
   bool isEnabledEOSC(void);
+  float getTemperature(); // in Celsius degree
+  uint8_t readnvram(uint8_t address);
+  void readnvram(uint8_t *buf, uint8_t size, uint8_t address);
+  void writenvram(uint8_t address, uint8_t data);
+  void writenvram(uint8_t address, const uint8_t *buf, uint8_t size);
+};
+
+/**************************************************************************/
+/*!
+        @brief  RTC based on the MAX31343 chip connected via I2C and the Wire
+   library
+*/
+/**************************************************************************/
+class RTC_MAX31343 : RTC_I2C {
+public:
+  bool begin(TwoWire *wireInstance = &Wire);
+  void adjust(const DateTime &dt);
+  bool lostPower(void);
+  DateTime now();
+  Max31343SqwPinMode readSqwPinMode();
+  void writeSqwPinMode(Max31343SqwPinMode mode);
+  bool setAlarm1(const DateTime &dt, Max31343Alarm1Mode alarm_mode);
+  bool setAlarm2(const DateTime &dt, Max31343Alarm2Mode alarm_mode);
+  void disableAlarm(uint8_t alarm_num);
+  void clearAlarm(uint8_t alarm_num);
+  bool alarmFired(uint8_t alarm_num);
+  void enableClkOut(Max31343ClkOutFreq freq);
+  void disableClkOut(void);
+  bool isEnabledClkOut(void);
+  void clearOSF(void);
   float getTemperature(); // in Celsius degree
   uint8_t readnvram(uint8_t address);
   void readnvram(uint8_t *buf, uint8_t size, uint8_t address);
