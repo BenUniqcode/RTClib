@@ -1,26 +1,26 @@
 #include "RTClib.h"
 
-#define DS3232_ADDRESS 0x68   ///< I2C address for DS3232
-#define DS3232_TIME 0x00      ///< Time register
-#define DS3232_ALARM1 0x07    ///< Alarm 1 register
-#define DS3232_ALARM2 0x0B    ///< Alarm 2 register
-#define DS3232_CONTROL 0x0E   ///< Control register
-#define DS3232_STATUSREG 0x0F ///< Status register
-#define DS3232_TEMPERATUREREG                                                  \
+#define MAX31343_ADDRESS 0x68   ///< I2C address for MAX31343
+#define MAX31343_TIME 0x00      ///< Time register
+#define MAX31343_ALARM1 0x07    ///< Alarm 1 register
+#define MAX31343_ALARM2 0x0B    ///< Alarm 2 register
+#define MAX31343_CONTROL 0x0E   ///< Control register
+#define MAX31343_STATUSREG 0x0F ///< Status register
+#define MAX31343_TEMPERATUREREG                                                  \
   0x11 ///< Temperature register (high byte - low byte is at 0x12), 10-bit
 ///< temperature value
-#define DS3232_NVRAM 0x14 ///< Start of RAM registers - 236 bytes, 0x14 to 0xEC
+#define MAX31343_NVRAM 0x14 ///< Start of RAM registers - 236 bytes, 0x14 to 0xEC
 /**************************************************************************/
 /*!
-        @brief  Start I2C for the DS3232 and test succesful connection
+        @brief  Start I2C for the MAX31343 and test succesful connection
         @param  wireInstance pointer to the I2C bus
-        @return True if Wire can find DS3232 or false otherwise.
+        @return True if Wire can find MAX31343 or false otherwise.
 */
 /**************************************************************************/
-boolean RTC_DS3232::begin(TwoWire *wireInstance) {
+boolean RTC_MAX31343::begin(TwoWire *wireInstance) {
   if (i2c_dev)
     delete i2c_dev;
-  i2c_dev = new Adafruit_I2CDevice(DS3232_ADDRESS, wireInstance);
+  i2c_dev = new Adafruit_I2CDevice(MAX31343_ADDRESS, wireInstance);
   if (!i2c_dev->begin())
     return false;
   return true;
@@ -29,13 +29,13 @@ boolean RTC_DS3232::begin(TwoWire *wireInstance) {
 /**************************************************************************/
 /*!
         @brief  Check the status register Oscillator Stop Flag to see if the
-   DS3232 stopped due to power loss
+   MAX31343 stopped due to power loss
         @return True if the bit is set (oscillator stopped) or false if it is
    running
 */
 /**************************************************************************/
-bool RTC_DS3232::lostPower(void) {
-  return read_register(DS3232_STATUSREG) >> 7;
+bool RTC_MAX31343::lostPower(void) {
+  return read_register(MAX31343_STATUSREG) >> 7;
 }
 
 /**************************************************************************/
@@ -44,20 +44,20 @@ bool RTC_DS3232::lostPower(void) {
         @param dt DateTime object containing the date/time to set
 */
 /**************************************************************************/
-void RTC_DS3232::adjust(const DateTime &dt) {
-  uint8_t buffer[8] = {DS3232_TIME,
+void RTC_MAX31343::adjust(const DateTime &dt) {
+  uint8_t buffer[8] = {MAX31343_TIME,
                        bin2bcd(dt.second()),
                        bin2bcd(dt.minute()),
                        bin2bcd(dt.hour()),
-                       bin2bcd(dowToDS3232(dt.dayOfTheWeek())),
+                       bin2bcd(dowToMAX31343(dt.dayOfTheWeek())),
                        bin2bcd(dt.day()),
                        bin2bcd(dt.month()),
                        bin2bcd(dt.year() - 2000U)};
   i2c_dev->write(buffer, 8);
 
-  uint8_t statreg = read_register(DS3232_STATUSREG);
+  uint8_t statreg = read_register(MAX31343_STATUSREG);
   statreg &= ~0x80; // flip OSF bit
-  write_register(DS3232_STATUSREG, statreg);
+  write_register(MAX31343_STATUSREG, statreg);
 }
 
 /**************************************************************************/
@@ -66,7 +66,7 @@ void RTC_DS3232::adjust(const DateTime &dt) {
         @return DateTime object with the current date/time
 */
 /**************************************************************************/
-DateTime RTC_DS3232::now() {
+DateTime RTC_MAX31343::now() {
   uint8_t buffer[7];
   buffer[0] = 0;
   i2c_dev->write_then_read(buffer, 1, buffer, 7);
@@ -82,11 +82,11 @@ DateTime RTC_DS3232::now() {
         @return Pin mode, see Ds3232SqwPinMode enum
 */
 /**************************************************************************/
-Ds3232SqwPinMode RTC_DS3232::readSqwPinMode() {
+Ds3232SqwPinMode RTC_MAX31343::readSqwPinMode() {
   int mode;
-  mode = read_register(DS3232_CONTROL) & 0x1C;
+  mode = read_register(MAX31343_CONTROL) & 0x1C;
   if (mode & 0x04)
-    mode = DS3232_OFF;
+    mode = MAX31343_OFF;
   return static_cast<Ds3232SqwPinMode>(mode);
 }
 
@@ -96,23 +96,23 @@ Ds3232SqwPinMode RTC_DS3232::readSqwPinMode() {
         @param mode Desired mode, see Ds3232SqwPinMode enum
 */
 /**************************************************************************/
-void RTC_DS3232::writeSqwPinMode(Ds3232SqwPinMode mode) {
-  uint8_t ctrl = read_register(DS3232_CONTROL);
+void RTC_MAX31343::writeSqwPinMode(Ds3232SqwPinMode mode) {
+  uint8_t ctrl = read_register(MAX31343_CONTROL);
 
   ctrl &= ~0x04; // turn off INTCON
   ctrl &= ~0x18; // set freq bits to 0
 
-  write_register(DS3232_CONTROL, ctrl | mode);
+  write_register(MAX31343_CONTROL, ctrl | mode);
 }
 
 /**************************************************************************/
 /*!
-        @brief  Get the current temperature from the DS3232's temperature sensor
+        @brief  Get the current temperature from the MAX31343's temperature sensor
         @return Current temperature (float)
 */
 /**************************************************************************/
-float RTC_DS3232::getTemperature() {
-  uint8_t buffer[2] = {DS3232_TEMPERATUREREG, 0};
+float RTC_MAX31343::getTemperature() {
+  uint8_t buffer[2] = {MAX31343_TEMPERATUREREG, 0};
   i2c_dev->write_then_read(buffer, 1, buffer, 2);
   // Fix for negative temperatures https://github.com/adafruit/RTClib/pull/303
   int16_t temp = uint16_t(buffer[0]) << 8 | buffer[1];
@@ -121,14 +121,14 @@ float RTC_DS3232::getTemperature() {
 
 /**************************************************************************/
 /*!
-        @brief  Set alarm 1 for DS3232
+        @brief  Set alarm 1 for MAX31343
                 @param 	dt DateTime object
                 @param 	alarm_mode Desired mode, see Ds3232Alarm1Mode enum
         @return False if control register is not set, otherwise true
 */
 /**************************************************************************/
-bool RTC_DS3232::setAlarm1(const DateTime &dt, Ds3232Alarm1Mode alarm_mode) {
-  uint8_t ctrl = read_register(DS3232_CONTROL);
+bool RTC_MAX31343::setAlarm1(const DateTime &dt, Ds3232Alarm1Mode alarm_mode) {
+  uint8_t ctrl = read_register(MAX31343_CONTROL);
   if (!(ctrl & 0x04)) {
     return false;
   }
@@ -139,29 +139,29 @@ bool RTC_DS3232::setAlarm1(const DateTime &dt, Ds3232Alarm1Mode alarm_mode) {
   uint8_t A1M4 = (alarm_mode & 0x08) << 4; // Day/Date bit 7.
   uint8_t DY_DT = (alarm_mode & 0x10)
                   << 2; // Day/Date bit 6. Date when 0, day of week when 1.
-  uint8_t day = (DY_DT) ? dowToDS3232(dt.dayOfTheWeek()) : dt.day();
+  uint8_t day = (DY_DT) ? dowToMAX31343(dt.dayOfTheWeek()) : dt.day();
 
-  uint8_t buffer[5] = {DS3232_ALARM1, uint8_t(bin2bcd(dt.second()) | A1M1),
+  uint8_t buffer[5] = {MAX31343_ALARM1, uint8_t(bin2bcd(dt.second()) | A1M1),
                        uint8_t(bin2bcd(dt.minute()) | A1M2),
                        uint8_t(bin2bcd(dt.hour()) | A1M3),
                        uint8_t(bin2bcd(day) | A1M4 | DY_DT)};
   i2c_dev->write(buffer, 5);
 
-  write_register(DS3232_CONTROL, ctrl | 0x01); // AI1E
+  write_register(MAX31343_CONTROL, ctrl | 0x01); // AI1E
 
   return true;
 }
 
 /**************************************************************************/
 /*!
-        @brief  Set alarm 2 for DS3232
+        @brief  Set alarm 2 for MAX31343
                 @param 	dt DateTime object
                 @param 	alarm_mode Desired mode, see Ds3232Alarm2Mode enum
         @return False if control register is not set, otherwise true
 */
 /**************************************************************************/
-bool RTC_DS3232::setAlarm2(const DateTime &dt, Ds3232Alarm2Mode alarm_mode) {
-  uint8_t ctrl = read_register(DS3232_CONTROL);
+bool RTC_MAX31343::setAlarm2(const DateTime &dt, Ds3232Alarm2Mode alarm_mode) {
+  uint8_t ctrl = read_register(MAX31343_CONTROL);
   if (!(ctrl & 0x04)) {
     return false;
   }
@@ -171,14 +171,14 @@ bool RTC_DS3232::setAlarm2(const DateTime &dt, Ds3232Alarm2Mode alarm_mode) {
   uint8_t A2M4 = (alarm_mode & 0x04) << 5; // Day/Date bit 7.
   uint8_t DY_DT = (alarm_mode & 0x08)
                   << 3; // Day/Date bit 6. Date when 0, day of week when 1.
-  uint8_t day = (DY_DT) ? dowToDS3232(dt.dayOfTheWeek()) : dt.day();
+  uint8_t day = (DY_DT) ? dowToMAX31343(dt.dayOfTheWeek()) : dt.day();
 
-  uint8_t buffer[4] = {DS3232_ALARM2, uint8_t(bin2bcd(dt.minute()) | A2M2),
+  uint8_t buffer[4] = {MAX31343_ALARM2, uint8_t(bin2bcd(dt.minute()) | A2M2),
                        uint8_t(bin2bcd(dt.hour()) | A2M3),
                        uint8_t(bin2bcd(day) | A2M4 | DY_DT)};
   i2c_dev->write(buffer, 4);
 
-  write_register(DS3232_CONTROL, ctrl | 0x02); // AI2E
+  write_register(MAX31343_CONTROL, ctrl | 0x02); // AI2E
 
   return true;
 }
@@ -189,10 +189,10 @@ bool RTC_DS3232::setAlarm2(const DateTime &dt, Ds3232Alarm2Mode alarm_mode) {
                 @param 	alarm_num Alarm number to disable
 */
 /**************************************************************************/
-void RTC_DS3232::disableAlarm(uint8_t alarm_num) {
-  uint8_t ctrl = read_register(DS3232_CONTROL);
+void RTC_MAX31343::disableAlarm(uint8_t alarm_num) {
+  uint8_t ctrl = read_register(MAX31343_CONTROL);
   ctrl &= ~(1 << (alarm_num - 1));
-  write_register(DS3232_CONTROL, ctrl);
+  write_register(MAX31343_CONTROL, ctrl);
 }
 
 /**************************************************************************/
@@ -201,10 +201,10 @@ void RTC_DS3232::disableAlarm(uint8_t alarm_num) {
                 @param 	alarm_num Alarm number to clear
 */
 /**************************************************************************/
-void RTC_DS3232::clearAlarm(uint8_t alarm_num) {
-  uint8_t status = read_register(DS3232_STATUSREG);
+void RTC_MAX31343::clearAlarm(uint8_t alarm_num) {
+  uint8_t status = read_register(MAX31343_STATUSREG);
   status &= ~(0x1 << (alarm_num - 1));
-  write_register(DS3232_STATUSREG, status);
+  write_register(MAX31343_STATUSREG, status);
 }
 
 /**************************************************************************/
@@ -214,8 +214,8 @@ void RTC_DS3232::clearAlarm(uint8_t alarm_num) {
                 @return True if alarm has been fired otherwise false
 */
 /**************************************************************************/
-bool RTC_DS3232::alarmFired(uint8_t alarm_num) {
-  return (read_register(DS3232_STATUSREG) >> (alarm_num - 1)) & 0x1;
+bool RTC_MAX31343::alarmFired(uint8_t alarm_num) {
+  return (read_register(MAX31343_STATUSREG) >> (alarm_num - 1)) & 0x1;
 }
 
 /**************************************************************************/
@@ -225,10 +225,10 @@ bool RTC_DS3232::alarmFired(uint8_t alarm_num) {
         pull-up resistor to function correctly
 */
 /**************************************************************************/
-void RTC_DS3232::enable32K(void) {
-  uint8_t status = read_register(DS3232_STATUSREG);
+void RTC_MAX31343::enable32K(void) {
+  uint8_t status = read_register(MAX31343_STATUSREG);
   status |= (0x1 << 0x03);
-  write_register(DS3232_STATUSREG, status);
+  write_register(MAX31343_STATUSREG, status);
 }
 
 /**************************************************************************/
@@ -236,10 +236,10 @@ void RTC_DS3232::enable32K(void) {
         @brief  Disable 32KHz Output
 */
 /**************************************************************************/
-void RTC_DS3232::disable32K(void) {
-  uint8_t status = read_register(DS3232_STATUSREG);
+void RTC_MAX31343::disable32K(void) {
+  uint8_t status = read_register(MAX31343_STATUSREG);
   status &= ~(0x1 << 0x03);
-  write_register(DS3232_STATUSREG, status);
+  write_register(MAX31343_STATUSREG, status);
 }
 
 /**************************************************************************/
@@ -248,8 +248,8 @@ void RTC_DS3232::disable32K(void) {
         @return True if enabled otherwise false
 */
 /**************************************************************************/
-bool RTC_DS3232::isEnabled32K(void) {
-  return (read_register(DS3232_STATUSREG) >> 0x03) & 0x01;
+bool RTC_MAX31343::isEnabled32K(void) {
+  return (read_register(MAX31343_STATUSREG) >> 0x03) & 0x01;
 }
 /**************************************************************************/
 
@@ -260,10 +260,10 @@ bool RTC_DS3232::isEnabled32K(void) {
         pull-up resistor to function correctly
 */
 /**************************************************************************/
-void RTC_DS3232::enableBB32KHZ(void) {
-  uint8_t status = read_register(DS3232_STATUSREG);
+void RTC_MAX31343::enableBB32KHZ(void) {
+  uint8_t status = read_register(MAX31343_STATUSREG);
   status |= (0x1 << 0x06);
-  write_register(DS3232_STATUSREG, status);
+  write_register(MAX31343_STATUSREG, status);
 }
 
 /**************************************************************************/
@@ -271,10 +271,10 @@ void RTC_DS3232::enableBB32KHZ(void) {
         @brief  Disable BB32KHZ Output
 */
 /**************************************************************************/
-void RTC_DS3232::disableBB32KHZ(void) {
-  uint8_t status = read_register(DS3232_STATUSREG);
+void RTC_MAX31343::disableBB32KHZ(void) {
+  uint8_t status = read_register(MAX31343_STATUSREG);
   status &= ~(0x1 << 0x06);
-  write_register(DS3232_STATUSREG, status);
+  write_register(MAX31343_STATUSREG, status);
 }
 
 /**************************************************************************/
@@ -283,8 +283,8 @@ void RTC_DS3232::disableBB32KHZ(void) {
         @return True if enabled otherwise false
 */
 /**************************************************************************/
-bool RTC_DS3232::isEnabledBB32KHZ(void) {
-  return (read_register(DS3232_STATUSREG) >> 0x06) & 0x01;
+bool RTC_MAX31343::isEnabledBB32KHZ(void) {
+  return (read_register(MAX31343_STATUSREG) >> 0x06) & 0x01;
 }
 
 /**************************************************************************/
@@ -301,28 +301,28 @@ bool RTC_DS3232::isEnabledBB32KHZ(void) {
    until written to logic 0.
 */
 /**************************************************************************/
-void RTC_DS3232::clearOSF(void) {
+void RTC_MAX31343::clearOSF(void) {
 
-  uint8_t statreg = read_register(DS3232_STATUSREG);
+  uint8_t statreg = read_register(MAX31343_STATUSREG);
   statreg &= ~0x80; // flip OSF bit
-  write_register(DS3232_STATUSREG, statreg);
+  write_register(MAX31343_STATUSREG, statreg);
 }
 /**************************************************************************/
 /*!
         @brief  Enable EOSF. Enable Oscillator (EOSC) Bit 7 of Control Register
    (0Eh)
         @details When set to logic 0, the oscillator is started (inverted
-   logic). When set to logic 1, the oscillator is stopped when the DS3232
+   logic). When set to logic 1, the oscillator is stopped when the MAX31343
    switches to battery power. This bit is clear (logic 0) when power is first
-   applied. When the DS3232 is powered by VCC, the oscillator is always on
+   applied. When the MAX31343 is powered by VCC, the oscillator is always on
    regardless of the status of the EOSC bit. When EOSC is disabled, all register
    data is static.
 */
 /**************************************************************************/
-void RTC_DS3232::enableEOSC(void) {
-  uint8_t status = read_register(DS3232_CONTROL);
+void RTC_MAX31343::enableEOSC(void) {
+  uint8_t status = read_register(MAX31343_CONTROL);
   status &= ~(0x1 << 0x07);
-  write_register(DS3232_CONTROL, status);
+  write_register(MAX31343_CONTROL, status);
 }
 /**************************************************************************/
 /*!
@@ -330,10 +330,10 @@ void RTC_DS3232::enableEOSC(void) {
    (inverted logic)
 */
 /**************************************************************************/
-void RTC_DS3232::disableEOSC(void) {
-  uint8_t status = read_register(DS3232_CONTROL);
+void RTC_MAX31343::disableEOSC(void) {
+  uint8_t status = read_register(MAX31343_CONTROL);
   status |= (0x1 << 0x07);
-  write_register(DS3232_CONTROL, status);
+  write_register(MAX31343_CONTROL, status);
 }
 /**************************************************************************/
 /*!
@@ -341,33 +341,33 @@ void RTC_DS3232::disableEOSC(void) {
         @return When set to logic 0, the oscillator is started (inverted logic)
 */
 /**************************************************************************/
-bool RTC_DS3232::isEnabledEOSC(void) {
-  return (read_register(DS3232_CONTROL) >> 0x07) & 0x01;
+bool RTC_MAX31343::isEnabledEOSC(void) {
+  return (read_register(MAX31343_CONTROL) >> 0x07) & 0x01;
 }
 
 /**************************************************************************/
 /*!
-        @brief  Read data from the DS3232's NVRAM
+        @brief  Read data from the MAX31343's NVRAM
         @param buf Pointer to a buffer to store the data - make sure it's large
    enough to hold size bytes
         @param size Number of bytes to read
         @param address Starting NVRAM address, from 0 to 236
 */
 /**************************************************************************/
-void RTC_DS3232::readnvram(uint8_t *buf, uint8_t size, uint8_t address) {
-  uint8_t addrByte = DS3232_NVRAM + address;
+void RTC_MAX31343::readnvram(uint8_t *buf, uint8_t size, uint8_t address) {
+  uint8_t addrByte = MAX31343_NVRAM + address;
   i2c_dev->write_then_read(&addrByte, 1, buf, size);
 }
 /**************************************************************************/
 /*!
-        @brief  Write data to the DS3232 NVRAM
+        @brief  Write data to the MAX31343 NVRAM
         @param address Starting NVRAM address, from 0 to 236
         @param buf Pointer to buffer containing the data to write
         @param size Number of bytes in buf to write to NVRAM
 */
 /**************************************************************************/
-void RTC_DS3232::writenvram(uint8_t address, const uint8_t *buf, uint8_t size) {
-  uint8_t addrByte = DS3232_NVRAM + address;
+void RTC_MAX31343::writenvram(uint8_t address, const uint8_t *buf, uint8_t size) {
+  uint8_t addrByte = MAX31343_NVRAM + address;
   i2c_dev->write(buf, size, true, &addrByte, 1);
 }
 
@@ -378,7 +378,7 @@ void RTC_DS3232::writenvram(uint8_t address, const uint8_t *buf, uint8_t size) {
         @return The byte read from NVRAM
 */
 /**************************************************************************/
-uint8_t RTC_DS3232::readnvram(uint8_t address) {
+uint8_t RTC_MAX31343::readnvram(uint8_t address) {
   uint8_t data;
   readnvram(&data, 1, address);
   return data;
@@ -391,6 +391,6 @@ uint8_t RTC_DS3232::readnvram(uint8_t address) {
         @param data One byte to write
 */
 /**************************************************************************/
-void RTC_DS3232::writenvram(uint8_t address, uint8_t data) {
+void RTC_MAX31343::writenvram(uint8_t address, uint8_t data) {
   writenvram(address, &data, 1);
 }
