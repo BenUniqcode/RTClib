@@ -93,7 +93,7 @@ void RTC_RV3032::adjust(const DateTime &dt) {
                        bin2bcd(dt.second()),
                        bin2bcd(dt.minute()),
                        bin2bcd(dt.hour()),
-                       bin2bcd(dt.dayOfTheWeek()), // Unlike the DS3232, this is a number from 0 to 6, same as in DateTime, so does not need additional conversion.
+                       dt.dayOfTheWeek(),
                        bin2bcd(dt.day()),
                        bin2bcd(dt.month()),
                        bin2bcd(dt.year() - 2000U)};

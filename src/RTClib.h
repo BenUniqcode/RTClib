@@ -468,14 +468,6 @@ public:
   void disable32K(void);
   bool isEnabled32K(void);
   float getTemperature(); // in Celsius degree
-  /*!
-          @brief  Convert the day of the week to a representation suitable for
-                          storing in the DS3231: from 1 (Monday) to 7 (Sunday).
-          @param  d Day of the week as represented by the library:
-                          from 0 (Sunday) to 6 (Saturday).
-          @return the converted value
-  */
-  static uint8_t dowToDS3231(uint8_t d) { return d == 0 ? 7 : d; }
 };
 /**************************************************************************/
 /*!
@@ -507,14 +499,6 @@ public:
   void disableEOSC(void);
   bool isEnabledEOSC(void);
   float getTemperature(); // in Celsius degree
-  /*!
-          @brief  Convert the day of the week to a representation suitable for
-                          storing in the DS3232: from 1 (Monday) to 7 (Sunday).
-          @param  d Day of the week as represented by the library:
-                          from 0 (Sunday) to 6 (Saturday).
-          @return the converted value
-  */
-  static uint8_t dowToDS3232(uint8_t d) { return d == 0 ? 7 : d; }
   uint8_t readnvram(uint8_t address);
   void readnvram(uint8_t *buf, uint8_t size, uint8_t address);
   void writenvram(uint8_t address, uint8_t data);

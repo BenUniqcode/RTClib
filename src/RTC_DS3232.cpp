@@ -49,7 +49,7 @@ void RTC_DS3232::adjust(const DateTime &dt) {
                        bin2bcd(dt.second()),
                        bin2bcd(dt.minute()),
                        bin2bcd(dt.hour()),
-                       bin2bcd(dowToDS3232(dt.dayOfTheWeek())),
+                       dt.dayOfTheWeek(),
                        bin2bcd(dt.day()),
                        bin2bcd(dt.month()),
                        bin2bcd(dt.year() - 2000U)};
@@ -139,7 +139,7 @@ bool RTC_DS3232::setAlarm1(const DateTime &dt, Ds3232Alarm1Mode alarm_mode) {
   uint8_t A1M4 = (alarm_mode & 0x08) << 4; // Day/Date bit 7.
   uint8_t DY_DT = (alarm_mode & 0x10)
                   << 2; // Day/Date bit 6. Date when 0, day of week when 1.
-  uint8_t day = (DY_DT) ? dowToDS3232(dt.dayOfTheWeek()) : dt.day();
+  uint8_t day = (DY_DT) ? dt.dayOfTheWeek() : dt.day();
 
   uint8_t buffer[5] = {DS3232_ALARM1, uint8_t(bin2bcd(dt.second()) | A1M1),
                        uint8_t(bin2bcd(dt.minute()) | A1M2),
@@ -171,7 +171,7 @@ bool RTC_DS3232::setAlarm2(const DateTime &dt, Ds3232Alarm2Mode alarm_mode) {
   uint8_t A2M4 = (alarm_mode & 0x04) << 5; // Day/Date bit 7.
   uint8_t DY_DT = (alarm_mode & 0x08)
                   << 3; // Day/Date bit 6. Date when 0, day of week when 1.
-  uint8_t day = (DY_DT) ? dowToDS3232(dt.dayOfTheWeek()) : dt.day();
+  uint8_t day = (DY_DT) ? dt.dayOfTheWeek() : dt.day();
 
   uint8_t buffer[4] = {DS3232_ALARM2, uint8_t(bin2bcd(dt.minute()) | A2M2),
                        uint8_t(bin2bcd(dt.hour()) | A2M3),
