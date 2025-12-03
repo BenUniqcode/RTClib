@@ -107,7 +107,7 @@ Max31343SqwPinMode RTC_MAX31343::readSqwPinMode() {
 void RTC_MAX31343::writeSqwPinMode(Max31343SqwPinMode mode) {
   uint8_t config = read_register(MAX31343_RTC_CONFIG2);
   config &= ~0x7; // clear relevant bits
-  write_register(MAX31343_RTC_CONFIG2, ctrl | mode);
+  write_register(MAX31343_RTC_CONFIG2, config | mode);
 }
 
 /**************************************************************************/
@@ -145,8 +145,8 @@ bool RTC_MAX31343::setAlarm1(const DateTime &dt, Max31343Alarm1Mode alarm_mode) 
   uint8_t buffer[5] = {MAX31343_ALARM1, uint8_t(bin2bcd(dt.second()) | A1M1),
                        uint8_t(bin2bcd(dt.minute()) | A1M2),
                        uint8_t(bin2bcd(dt.hour()) | A1M3),
-                       uint8_t(bin2bcd(day)) | A1M4 | DY_DT),
-                       uint8_t(bin2bcd(dt.month()) | A1M5 | A1M6,
+                       uint8_t(bin2bcd(day) | A1M4 | DY_DT),
+                       uint8_t(bin2bcd(dt.month()) | A1M5 | A1M6),
                        uint8_t(bin2bcd(dt.year() - 2000U))};
   i2c_dev->write(buffer, 5);
   uint8_t int_en = read_register(MAX31343_INT_EN);
