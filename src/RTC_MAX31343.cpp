@@ -15,7 +15,7 @@
 #define MAX31343_PWR_MGMT 0x17     ///< Power Management register
 #define MAX31343_TRICKLE 0x17     ///< Trickle Charging register
 #define MAX31343_TEMPERATUREREG 0x1A ///< Temperature register (high byte - low byte is at 0x1B), 10-bit 2's complement
-#define MAX31413_TS_CONFIG 0x1C //< Temperature Sensor Config register
+#define MAX31343_TS_CONFIG 0x1C //< Temperature Sensor Config register
 #define MAX31343_NVRAM 0x22 ///< Start of RAM registers - 64 bytes, 0x22 to 0x61
 /**************************************************************************/
 /*!
@@ -89,22 +89,22 @@ DateTime RTC_MAX31343::now() {
 /**************************************************************************/
 /*!
         @brief  Read the SQW pin mode
-        @return Pin mode, see Max31413SqwPinMode enum
+        @return Pin mode, see Max31343SqwPinMode enum
 */
 /**************************************************************************/
-Max31413SqwPinMode RTC_MAX31343::readSqwPinMode() {
+Max31343SqwPinMode RTC_MAX31343::readSqwPinMode() {
   int mode;
   mode = read_register(MAX31343_RTC_CONFIG2) & 0x07;
-  return static_cast<Max31413SqwPinMode>(mode);
+  return static_cast<Max31343SqwPinMode>(mode);
 }
 
 /**************************************************************************/
 /*!
         @brief  Set the SQW pin mode
-        @param mode Desired mode, see Max31413SqwPinMode enum
+        @param mode Desired mode, see Max31343SqwPinMode enum
 */
 /**************************************************************************/
-void RTC_MAX31343::writeSqwPinMode(Max31413SqwPinMode mode) {
+void RTC_MAX31343::writeSqwPinMode(Max31343SqwPinMode mode) {
   uint8_t config = read_register(MAX31343_RTC_CONFIG2);
   config &= ~0x7; // clear relevant bits
   write_register(MAX31343_RTC_CONFIG2, ctrl | mode);
@@ -128,11 +128,11 @@ float RTC_MAX31343::getTemperature() {
 /*!
         @brief  Set alarm 1 for MAX31343
                 @param 	dt DateTime object
-                @param 	alarm_mode Desired mode, see Max31413Alarm1Mode enum
+                @param 	alarm_mode Desired mode, see Max31343Alarm1Mode enum
         @return False if control register is not set, otherwise true
 */
 /**************************************************************************/
-bool RTC_MAX31343::setAlarm1(const DateTime &dt, Max31413Alarm1Mode alarm_mode) {
+bool RTC_MAX31343::setAlarm1(const DateTime &dt, Max31343Alarm1Mode alarm_mode) {
   uint8_t A1M1 = (alarm_mode & 0x01) << 7; // Seconds bit 7.
   uint8_t A1M2 = (alarm_mode & 0x02) << 6; // Minutes bit 7.
   uint8_t A1M3 = (alarm_mode & 0x04) << 5; // Hour bit 7.
@@ -159,11 +159,11 @@ bool RTC_MAX31343::setAlarm1(const DateTime &dt, Max31413Alarm1Mode alarm_mode) 
 /*!
         @brief  Set alarm 2 for MAX31343
                 @param 	dt DateTime object
-                @param 	alarm_mode Desired mode, see Max31413Alarm2Mode enum
+                @param 	alarm_mode Desired mode, see Max31343Alarm2Mode enum
         @return False if control register is not set, otherwise true
 */
 /**************************************************************************/
-bool RTC_MAX31343::setAlarm2(const DateTime &dt, Max31413Alarm2Mode alarm_mode) {
+bool RTC_MAX31343::setAlarm2(const DateTime &dt, Max31343Alarm2Mode alarm_mode) {
   uint8_t A2M2 = (alarm_mode & 0x01) << 7; // Minutes bit 7.
   uint8_t A2M3 = (alarm_mode & 0x02) << 6; // Hour bit 7.
   uint8_t A2M4 = (alarm_mode & 0x04) << 5; // Day/Date bit 7.
