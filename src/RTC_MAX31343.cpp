@@ -142,7 +142,7 @@ bool RTC_MAX31343::setAlarm1(const DateTime &dt, Max31343Alarm1Mode alarm_mode) 
   uint8_t DY_DT = (alarm_mode & 0x40); // Day/Date bit 6. Date when 0, day of week when 1.
   uint8_t day = (DY_DT) ? dt.dayOfTheWeek() : dt.day();
 
-  uint8_t buffer[5] = {MAX31343_ALARM1, uint8_t(bin2bcd(dt.second()) | A1M1),
+  uint8_t buffer[7] = {MAX31343_ALARM1, uint8_t(bin2bcd(dt.second()) | A1M1),
                        uint8_t(bin2bcd(dt.minute()) | A1M2),
                        uint8_t(bin2bcd(dt.hour()) | A1M3),
                        uint8_t(bin2bcd(day) | A1M4 | DY_DT),
