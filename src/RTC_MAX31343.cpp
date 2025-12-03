@@ -223,7 +223,7 @@ bool RTC_MAX31343::alarmFired(uint8_t alarm_num) {
         @details The MAX31343's clock output is configurable for different frequencies
 */
 /**************************************************************************/
-void RTC_MAX31343::enableClkOut(Max31343ClkFreq freq) {
+void RTC_MAX31343::enableClkOut(Max31343ClkOutFreq freq) {
   uint8_t config2 = read_register(MAX31343_RTC_CONFIG2);
   config2 &= 0x7; // Clear everything except the bottom 3 bits, which are the SQW freq
   config2 |= 0x80 | freq;
