@@ -1,6 +1,6 @@
 #include "RTClib.h"
 
-#define MAX31343_ADDRESS 0xD0    ///< I2C address for MAX31343
+#define MAX31343_ADDRESS 0x68    ///< I2C address for MAX31343
 #define MAX31343_STATUSREG 0x00  ///< Status register
 #define MAX31343_INT_EN 0x01     ///< Interrupt Enable register
 #define MAX31343_RTC_RESET 0x02  ///< Reset register
