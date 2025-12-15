@@ -78,7 +78,7 @@ void RTC_MAX31343::adjust(const DateTime &dt) {
 /**************************************************************************/
 DateTime RTC_MAX31343::now() {
   uint8_t buffer[7];
-  buffer[0] = 0;
+  buffer[0] = MAX31343_TIME;
   i2c_dev->write_then_read(buffer, 1, buffer, 7);
 
   return DateTime(bcd2bin(buffer[6]) + 2000U, bcd2bin(buffer[5] & 0x7F),

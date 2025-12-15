@@ -68,7 +68,7 @@ void RTC_DS3231::adjust(const DateTime &dt) {
 /**************************************************************************/
 DateTime RTC_DS3231::now() {
   uint8_t buffer[7];
-  buffer[0] = 0;
+  buffer[0] = DS3231_TIME;
   i2c_dev->write_then_read(buffer, 1, buffer, 7);
 
   return DateTime(bcd2bin(buffer[6]) + 2000U, bcd2bin(buffer[5] & 0x7F),

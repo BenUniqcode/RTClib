@@ -1,6 +1,7 @@
 #include "RTClib.h"
 
 #define DS1307_ADDRESS 0x68 ///< I2C address for DS1307
+#define DS1307_TIME 0x00 ///< Start of date/time registers
 #define DS1307_CONTROL 0x07 ///< Control register
 #define DS1307_NVRAM 0x08   ///< Start of RAM registers - 56 bytes, 0x08 to 0x3f
 
@@ -54,7 +55,7 @@ void RTC_DS1307::adjust(const DateTime &dt) {
 /**************************************************************************/
 DateTime RTC_DS1307::now() {
   uint8_t buffer[7];
-  buffer[0] = 0;
+  buffer[0] = DS1307_TIME;
   i2c_dev->write_then_read(buffer, 1, buffer, 7);
 
   return DateTime(bcd2bin(buffer[6]) + 2000U, bcd2bin(buffer[5]),
