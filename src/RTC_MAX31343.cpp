@@ -148,7 +148,7 @@ bool RTC_MAX31343::setAlarm1(const DateTime &dt, Max31343Alarm1Mode alarm_mode) 
                        uint8_t(bin2bcd(day) | A1M4 | DY_DT),
                        uint8_t(bin2bcd(dt.month()) | A1M5 | A1M6),
                        uint8_t(bin2bcd(dt.year() - 2000U))};
-  i2c_dev->write(buffer, 5);
+  i2c_dev->write(buffer, 7);
   uint8_t int_en = read_register(MAX31343_INT_EN);
   write_register(MAX31343_INT_EN, int_en | 0x01); // A1IE
 
