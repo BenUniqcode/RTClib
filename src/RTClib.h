@@ -560,19 +560,18 @@ class RTC_MAX31343 : RTC_I2C {
 public:
   bool begin(TwoWire *wireInstance = &Wire);
   void adjust(const DateTime &dt);
-  bool lostPower(void);
+  bool lostPower(uint8_t status);
+  uint8_t readStatusAndClearInterrupts();
   DateTime now();
   Max31343SqwPinMode readSqwPinMode();
   void writeSqwPinMode(Max31343SqwPinMode mode);
   bool setAlarm1(const DateTime &dt, Max31343Alarm1Mode alarm_mode);
   bool setAlarm2(const DateTime &dt, Max31343Alarm2Mode alarm_mode);
   void disableAlarm(uint8_t alarm_num);
-  void clearAlarm(uint8_t alarm_num);
-  bool alarmFired(uint8_t alarm_num);
+  bool alarmFired(uint8_t alarm_num, uint8_t status);
   void enableClkOut(Max31343ClkOutFreq freq);
   void disableClkOut(void);
   bool isEnabledClkOut(void);
-  void clearOSF(void);
   float getTemperature(); // in Celsius degree
   uint8_t readnvram(uint8_t address);
   void readnvram(uint8_t *buf, uint8_t size, uint8_t address);

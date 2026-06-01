@@ -41,8 +41,22 @@ boolean RTC_MAX31343::begin(TwoWire *wireInstance) {
    running
 */
 /**************************************************************************/
-bool RTC_MAX31343::lostPower(void) {
-  return (read_register(MAX31343_STATUSREG) >> 6) & 1;
+bool RTC_MAX31343::lostPower(status) {
+  return (status >> 6) & 1;
+}
+
+/**************************************************************************/
+/*!
+        @brief  Read the STATUS register. Reading this automatically clears any interrupts,
+    hence the return value needs to be saved and passed into any functions that check for different
+    interrupt causes.
+        @return True if the bit is set (oscillator stopped) or false if it is
+   running
+*/
+/**************************************************************************/
+uint8_t readStatusAndClearInterrupts()
+{
+  return readRegister(MAX31343_STATUSREG);
 }
 
 /**************************************************************************/
@@ -67,7 +81,8 @@ void RTC_MAX31343::adjust(const DateTime &dt) {
                        bin2bcd(dt.year() - 2000U)};
   i2c_dev->write(buffer, 8);
 
-  clearOSF();
+  // Unlike other RTCs, we do not automatically clear interrupts here.
+  // Any read of the STATUS reg does so, so leave that up to the caller to decide.
 }
 
 /**************************************************************************/
@@ -194,17 +209,8 @@ void RTC_MAX31343::disableAlarm(uint8_t alarm_num) {
   write_register(MAX31343_INT_EN, int_en);
 }
 
-/**************************************************************************/
-/*!
-        @brief  Clear status of alarm
-                @param 	alarm_num Alarm number to clear
-*/
-/**************************************************************************/
-void RTC_MAX31343::clearAlarm(uint8_t alarm_num) {
-  uint8_t status = read_register(MAX31343_STATUSREG);
-  status &= ~(0x1 << (alarm_num - 1));
-  write_register(MAX31343_STATUSREG, status);
-}
+// There is no clearAlarm() because MAX31343 clears all interrupts when
+// the STATUS reg is read.
 
 /**************************************************************************/
 /*!
@@ -213,8 +219,8 @@ void RTC_MAX31343::clearAlarm(uint8_t alarm_num) {
                 @return True if alarm has been fired otherwise false
 */
 /**************************************************************************/
-bool RTC_MAX31343::alarmFired(uint8_t alarm_num) {
-  return (read_register(MAX31343_STATUSREG) >> (alarm_num - 1)) & 0x1;
+bool RTC_MAX31343::alarmFired(uint8_t alarm_num, uint8_t status) {
+  return (status >> (alarm_num - 1)) & 0x1;
 }
 
 /**************************************************************************/
@@ -251,26 +257,7 @@ bool RTC_MAX31343::isEnabledClkOut(void) {
   return (read_register(MAX31343_RTC_CONFIG2) >> 7) & 0x01;
 }
 
-/**************************************************************************/
-/*!
-        @brief  Clear Oscillator Stop Flag (OSF). Bit 7 of STATUSREG (0Fh)
-        @details A logic 1 in this bit indicates that the oscillator either is
-         stopped or was stopped for some period and may be used to judge the
-   validity of the timekeeping data. This bit is set to logic 1 any time that
-   the oscillator stops. The following are examples of conditions that can cause
-   the OSF bit to be set: 1) The first time power is applied. 2) The voltages
-         present on both VCC and VBAT are insufficient to support oscillation.
-   3) The EOSC bit is turned off in battery-backed mode. 4) External influences
-   on the crystal (i.e., noise, leakage, etc.). This bit remains at logic 1
-   until written to logic 0.
-*/
-/**************************************************************************/
-void RTC_MAX31343::clearOSF(void) {
-
-  uint8_t statreg = read_register(MAX31343_STATUSREG);
-  statreg &= ~0x40; // clear OSF bit
-  write_register(MAX31343_STATUSREG, statreg);
-}
+// There is no clearOSF() because reading the STATUS register clears all interrupts
 
 /**************************************************************************/
 /*!
