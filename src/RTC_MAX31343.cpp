@@ -54,9 +54,9 @@ bool RTC_MAX31343::lostPower(status) {
    running
 */
 /**************************************************************************/
-uint8_t readStatusAndClearInterrupts()
+uint8_t RTC_MAX31343::readStatusAndClearInterrupts()
 {
-  return readRegister(MAX31343_STATUSREG);
+  return read_register(MAX31343_STATUSREG);
 }
 
 /**************************************************************************/
