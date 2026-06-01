@@ -41,7 +41,7 @@ boolean RTC_MAX31343::begin(TwoWire *wireInstance) {
    running
 */
 /**************************************************************************/
-bool RTC_MAX31343::lostPower(status) {
+bool RTC_MAX31343::lostPower(uint8_t status) {
   return (status >> 6) & 1;
 }
 
