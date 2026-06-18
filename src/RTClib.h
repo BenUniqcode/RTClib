@@ -569,6 +569,7 @@ public:
   bool setAlarm2(const DateTime &dt, Max31343Alarm2Mode alarm_mode);
   void disableAlarm(uint8_t alarm_num);
   bool alarmFired(uint8_t alarm_num);
+  void clearAlarm(uint8_t alarm_num);
   void enableClkOut(Max31343ClkOutFreq freq);
   void disableClkOut(void);
   bool isEnabledClkOut(void);
