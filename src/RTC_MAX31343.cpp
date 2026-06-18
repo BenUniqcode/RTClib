@@ -215,7 +215,7 @@ void RTC_MAX31343::disableAlarm(uint8_t alarm_num) {
                 @param 	alarm_num Alarm number to clear
 */
 /**************************************************************************/
-void RTC_DS3232::clearAlarm(uint8_t alarm_num) {
+void RTC_MAX31343::clearAlarm(uint8_t alarm_num) {
   status_ &= ~(1U << (alarm_num - 1));
 }
 
@@ -264,8 +264,22 @@ bool RTC_MAX31343::isEnabledClkOut(void) {
   return (read_register(MAX31343_RTC_CONFIG2) >> 7) & 0x01;
 }
 
-void RTC_DS3232::clearOSF(void) {
-  status_ &= ~0x80; // clear OSF bit
+/**************************************************************************/
+/*!
+        @brief  Clear Oscillator Stop Flag (OSF). Bit 6 of STATUSREG (0Fh)
+        @details A logic 1 in this bit indicates that the oscillator either is
+         stopped or was stopped for some period and may be used to judge the
+   validity of the timekeeping data. This bit is set to logic 1 any time that
+   the oscillator stops. The following are examples of conditions that can cause
+   the OSF bit to be set: 1) The first time power is applied. 2) The voltages
+         present on both VCC and VBAT are insufficient to support oscillation.
+   3) The EOSC bit is turned off in battery-backed mode. 4) External influences
+   on the crystal (i.e., noise, leakage, etc.). This bit remains at logic 1
+   until written to logic 0.
+*/
+/**************************************************************************/
+void RTC_MAX31343::clearOSF(void) {
+  status_ &= ~0x40; // clear OSF bit
 }
 
 /**************************************************************************/
