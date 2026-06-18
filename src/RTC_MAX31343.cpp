@@ -41,8 +41,8 @@ boolean RTC_MAX31343::begin(TwoWire *wireInstance) {
    running
 */
 /**************************************************************************/
-bool RTC_MAX31343::lostPower(uint8_t status) {
-  return (status >> 6) & 1;
+bool RTC_MAX31343::lostPower() {
+  return (status_ >> 6) & 1;
 }
 
 /**************************************************************************/
@@ -54,9 +54,9 @@ bool RTC_MAX31343::lostPower(uint8_t status) {
    running
 */
 /**************************************************************************/
-uint8_t RTC_MAX31343::readStatusAndClearInterrupts()
+void RTC_MAX31343::readStatusAndClearInterrupts()
 {
-  return read_register(MAX31343_STATUSREG);
+  status_ = read_register(MAX31343_STATUSREG);
 }
 
 /**************************************************************************/
@@ -209,8 +209,15 @@ void RTC_MAX31343::disableAlarm(uint8_t alarm_num) {
   write_register(MAX31343_INT_EN, int_en);
 }
 
-// There is no clearAlarm() because MAX31343 clears all interrupts when
-// the STATUS reg is read.
+/**************************************************************************/
+/*!
+        @brief  Clear status of alarm
+                @param 	alarm_num Alarm number to clear
+*/
+/**************************************************************************/
+void RTC_DS3232::clearAlarm(uint8_t alarm_num) {
+  status_ &= ~(1U << (alarm_num - 1));
+}
 
 /**************************************************************************/
 /*!
@@ -219,8 +226,8 @@ void RTC_MAX31343::disableAlarm(uint8_t alarm_num) {
                 @return True if alarm has been fired otherwise false
 */
 /**************************************************************************/
-bool RTC_MAX31343::alarmFired(uint8_t alarm_num, uint8_t status) {
-  return (status >> (alarm_num - 1)) & 0x1;
+bool RTC_MAX31343::alarmFired(uint8_t alarm_num) {
+  return (status_ >> (alarm_num - 1)) & 0x1;
 }
 
 /**************************************************************************/
@@ -257,7 +264,9 @@ bool RTC_MAX31343::isEnabledClkOut(void) {
   return (read_register(MAX31343_RTC_CONFIG2) >> 7) & 0x01;
 }
 
-// There is no clearOSF() because reading the STATUS register clears all interrupts
+void RTC_DS3232::clearOSF(void) {
+  status_ &= ~0x80; // clear OSF bit
+}
 
 /**************************************************************************/
 /*!
